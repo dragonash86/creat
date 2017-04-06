@@ -1,0 +1,14 @@
+<% include include/header.ejs %>
+<% include include/top_info.ejs %>
+	<% if (user) { %>
+	<div class="container main">
+		<div class="status">
+			<form action="/roomCreat" method="post">
+		    	<input type="submit" class="btn" value="방만들기" />
+			</form>
+		</div>
+	</div>
+	<% } %>
+    <script>
+	</script>
+<% include include/footer.ejs %>
