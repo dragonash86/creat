@@ -1,14 +1,23 @@
 <% include include/header.ejs %>
-<% include include/top_info.ejs %>
-	<% if (user) { %>
 	<div class="container main">
-		<div class="status">
-			<form action="/roomCreat" method="post">
-		    	<input type="submit" class="btn" value="방만들기" />
-			</form>
-		</div>
+		<a href="/logout">로그아웃</a>
+		<h2>방 목록</h2>
+		<ul class="list">
+			<% for (i = 0; i < room.length; i++) { %>
+			<li>
+				<a href="/room?roomId=<%= room[i]._id %>">
+					<ul>
+						<li><%= room[i].name %></li>
+						<li>방장 : <%= room[i].admin %></li>
+						<li>참여인원 : <%= room[i].member.length %>/<%= room[i].maxMember %></li>
+						<li><%= room[i].start %></li>
+					</ul>
+				</a>
+			</li>
+			<% } %>
+			<li class="last"><form action="/roomCreat" method="post"><input type="submit" value="방만들기" /></form></li>
+		</ul>
 	</div>
-	<% } %>
     <script>
 	</script>
 <% include include/footer.ejs %>

@@ -1,0 +1,17 @@
+<% include include/header.ejs %>
+	<div class="container room">
+		<h2><%= game.current_turn %>의 차례</h2>
+		<ul>
+			<li>내 점수 : <%= game.point %></li>
+			<li>턴 순서 :
+				<% for (i = 0; i < game.turn_order.length; i++) { %>
+				<%= game.turn_order[i] + " " %>
+				<% } %>
+			</li>
+			<li>남은 행동 : <%= game.move %></li>
+			<li>골드 : <%= room.gold %></li>
+		</ul>
+	</div>
+    <script>
+	</script>
+<% include include/footer.ejs %>

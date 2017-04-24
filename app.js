@@ -26,37 +26,6 @@ app.set('view engine', 'ejs');
 app.get('/', function(req, res) {
 	res.redirect('/main');
 });
-app.get('/main', function(req, res) {
-	if (req.user) {
-		User.find({_id : req.user._id}, {_id : 0, last_logout : 0, user_id : 0, user_pw : 0, __v : 0 }, function(err, userValue) {
-			res.render('main', {user:userValue[0]});
-		});
-	} else {
-		res.redirect('/login');
-	}
-});
-app.get('/survival', function(req, res) {
-	if (req.user) {
-		User.find({_id : req.user._id}, {_id : 0, last_logout : 0, user_id : 0, user_pw : 0, __v : 0 }, function(err, userValue) {
-			//로그있으면 게임화면에서 보여주고 읽은 로그로 데이터 이동
-			var log = userValue[0].log;
-			if (log.length !== 0) {
-				User.update({_id : req.user._id}, {$set : {log : []}}, function(err) {
-					User.update({_id : req.user._id}, {$push : {read_log : log}}, function(err) {
-						if (err) throw err;
-					});
-				});
-			}
-			User.find({user_nick : userValue[0].match}, {_id : 0, hp : 1}, function(err, matchValue) {
-				User.find({user_nick : userValue[0].attackAfter}, {_id : 0, user_nick:1, hp : 1}, function(err, attackAfterValue) {
-					res.render('survival', {user:userValue[0], matchStat:matchValue[0], attackAfter:attackAfterValue[0]});
-				});
-			});
-		});
-	} else {
-		res.render('login');
-	}
-});
 //로그아웃
 app.get('/logout', function(req, res) {
 	//마지막 로그아웃 시간 기록
@@ -83,7 +52,7 @@ db.on("error",function (err) {
 app.listen(3000);
 console.log("Server running on port 3000");
 
-//전역 스키마 생성
+//유저전역 스키마 생성
 var userData = mongoose.Schema({
     user_id : {type : String, unique : true},
     user_pw : {type : String},
@@ -269,6 +238,120 @@ app.get('/buy', function(req, res) {
 		} else {
 			res.send('<script>alert("잘못된 요청 입니다.");location.href="/main";</script>');
 		}
+	} else {
+		res.render('login');
+	}
+});
+//게임 전역 스키마 생성
+var roomData = mongoose.Schema({
+    name : {type : String},
+    admin : {type : String},
+    maxMember : {type : Number},
+    full : {type : String},
+    delete : {type : String},
+    start : {type : String},
+    member : {type : [String]},
+    created_at : {type : Date, default : Date.now}
+});
+var Room = mongoose.model('roomData', roomData);
+app.get('/main', function(req, res) {
+	if (req.user) {
+		User.find({_id : req.user._id}, {_id : 0, last_logout : 0, user_id : 0, user_pw : 0, __v : 0}, function(err, userValue) {
+			Room.find({full : "no", delete : "no"}, function(err, roomValue) {
+				res.render('main', {user:userValue[0], room:roomValue});
+			});
+		});
+	} else {
+		res.redirect('/login');
+	}
+});
+//방만들기
+app.post('/roomCreat', function(req, res) {
+	var now = new Date();
+ 	now = dateToYYYYMMDDMMSS(now);
+ 	function dateToYYYYMMDDMMSS(date){
+		function pad(num) {
+			var num = num + '';
+			return num.length < 2 ? '0' + num : num;
+		}
+		return date.getFullYear() + '-' + pad(date.getMonth()+1) + '-' + pad(date.getDate()) + 
+		' ' + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+	}
+	if (req.user) {
+		var room = new Room({
+    	name : now,
+    	admin : req.user.user_nick,
+		maxMember : 4,
+		member : [req.user.user_nick],
+		full : "no",
+		delete : "no",
+		start : "대기"
+   	});
+    room.save(function(err) {
+        if (err) {
+        	res.send('<script>alert("에러남");location.href="/join";</script>');
+        	return console.error(err);
+        }
+        else res.send('<script>location.href="/";</script>');
+    });
+	} else {
+		res.render('login');
+	}
+});
+app.get('/room', function(req, res) {
+	if (req.user) {
+		var roomId = req.query.roomId;
+		if (roomId != null) {
+			Room.find({_id : roomId}, function(err, roomValue) {
+				res.render('room', {room:roomValue[0], user:req.user});
+			});
+		} else {
+			res.send('<script>alert("잘못된 요청");location.href="/main";</script>');
+		}
+	} else {
+		res.render('login');
+	}
+});
+//참가하기
+app.post('/joinRoom', function(req, res) {
+	if (req.user) {
+		var roomId = req.query.roomId;
+		Room.update({_id : roomId}, {$push : {member : req.user.user_nick}}, function(err) {
+			res.redirect('/room?roomId='+roomId);
+		});
+	} else {
+		res.render('login');
+	}
+});
+//나가기
+app.post('/leaveRoom', function(req, res) {
+	if (req.user) {
+		var roomId = req.query.roomId;
+		Room.update({_id : roomId}, {$pull : {member : req.user.user_nick}}, function(err) {
+			res.redirect('/room?roomId='+roomId);
+		});
+	} else {
+		res.render('login');
+	}
+});
+//방폭
+app.post('/deleteRoom', function(req, res) {
+	if (req.user) {
+		var roomId = req.query.roomId;
+		Room.update({_id : roomId}, {$set : {delete : "yes"}}, function(err) {
+			res.redirect('/main');
+		});
+	} else {
+		res.render('login');
+	}
+});
+//시작
+app.post('/startRoom', function(req, res) {
+	if (req.user) {
+		var roomId = req.query.roomId;
+		Room.update({_id : roomId}, {$set : {start : "진행 중"}}, function(err) {
+			res.redirect('/game');
+		});
 	} else {
 		res.render('login');
 	}

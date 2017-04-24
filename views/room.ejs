@@ -1,0 +1,36 @@
+<% include include/header.ejs %>
+	<div class="container room">
+		<h2>생성 시간 : <%= room.name %></h2>
+		<ul>
+			<li>방장 : <%= room.admin %></li>
+			<li>참여인원 : <%= room.member.length %>/<%= room.maxMember %></li>
+			<li>참가자 :
+				<% for (i = 0; i < room.member.length; i++) { %>
+				<%= room.member[i] + " " %>
+				<% } %>
+			</li>
+			<li>상태 : <%= room.start %></li>
+		</ul>
+		<%
+			if (user) { 
+				var count = 0;
+				for (var i = 0; i < room.member.length; i++) {
+					if (room.member[i] === user.user_nick) {
+						count = count + 1;
+					}
+				}	
+			}
+		%>
+		<% if (room.member.length !== room.maxMember && count === 0) { %>
+			<form action="/joinRoom?roomId=<%= room._id %>" method="post"><input type="submit" value="참가하기" /></form>
+		<% } else if (count !== 0 && room.admin !== user.user_nick) { %>
+			<form action="/leaveRoom?roomId=<%= room._id %>" method="post"><input type="submit" value="나가기" /></form>
+		<% } if (room.admin === user.user_nick && room.member.length > 1 && room.start !== "진행 중") { %>
+			<form action="/startRoom?roomId=<%= room._id %>" method="post"><input type="submit" value="시작" /></form>
+		<% } if (room.admin === user.user_nick && room.start !== "진행 중") { %>
+			<form action="/deleteRoom?roomId=<%= room._id %>" method="post"><input type="submit" value="방폭" /></form>
+		<% } %>
+	</div>
+    <script>
+	</script>
+<% include include/footer.ejs %>

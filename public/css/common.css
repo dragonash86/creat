@@ -54,16 +54,9 @@ h3{padding:20px 0}
 .login li{float:left}
 .login li:last-child{float:right}
 .login li span{color:#EA4836;padding:0 10px}
-/* 서바이벌 */
-.survival .action{overflow:hidden}
-.survival .action li{float:left}
-.survival .action input{display:block;width:158px;height:40px;line-height:36px;font-size:16px;text-align:center;color:#1c2833;border:1px solid #1c2833;cursor:pointer;margin-right:10px}
-.survival .action input:hover{color:#fff;background:#1c2833;text-decoration:none}
-.survival .meet{clear:left;display:block}
-.survival .msg{clear:left;display:block}
-.survival .status ul{overflow:hidden}
-.survival .status li{line-height:30px}
-.survival .item li{float:left;margin-right:10px}
-.survival .item li input{height:25px;line-height:25px;border:1px solid #1c2833;cursor:pointer;padding:0 10px}
-.survival .item li div{display:none;position:absolute;border:1px solid #000;background:#fff;padding:10px}
-.survival .item li.on div{display:block}
+/* 메인 */
+.main .list li{float:left}
+.main .list li a{display:inline-block;border:1px solid #9DA098;padding:15px;margin:0 5px 5px 0}
+.main .list li li{float:none;padding:5px 0}
+.main .list li.last{padding:0px}
+.main .list li.last input{width:143px;height:144px}
