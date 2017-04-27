@@ -1,6 +1,21 @@
 <% include include/header.ejs %>
 	<div class="container main">
 		<a href="/logout">로그아웃</a>
+		<h2>내 게임</h2>
+		<ul class="list">
+			<% for (i = 0; i < room.length; i++) { %>
+			<li>
+				<a href="/room?roomId=<%= room[i]._id %>">
+					<ul>
+						<li><%= room[i].name %></li>
+						<li>방장 : <%= room[i].admin %></li>
+						<li>참여인원 : <%= room[i].member.length %>/<%= room[i].maxMember %></li>
+						<li><%= room[i].start %></li>
+					</ul>
+				</a>
+			</li>
+			<% } %>
+		</ul>
 		<h2>방 목록</h2>
 		<ul class="list">
 			<% for (i = 0; i < room.length; i++) { %>

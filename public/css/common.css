@@ -55,8 +55,23 @@ h3{padding:20px 0}
 .login li:last-child{float:right}
 .login li span{color:#EA4836;padding:0 10px}
 /* 메인 */
+.main .list{overflow:hidden}
 .main .list li{float:left}
 .main .list li a{display:inline-block;border:1px solid #9DA098;padding:15px;margin:0 5px 5px 0}
 .main .list li li{float:none;padding:5px 0}
 .main .list li.last{padding:0px}
 .main .list li.last input{width:143px;height:144px}
+/* 게임 */
+.room{padding:20px}
+.board{margin:30px auto}
+.board td{position:relative;border:1px solid #272822;width:50px;height:50px}
+.board td.active{border:1px dashed #36D136}
+.board a{display:block;width:50px;height:50px}
+.board td span{position:absolute;top:-2px;left:2px;font-size:10px}
+.board .lv_1{position:absolute;left:14px;top:15px;border:1px solid red;border-radius:20px;width:20px;height:20px}
+.board .lv_2{position:absolute;left:10px;top:10px;border:15px solid red;border-radius:20px;width:20px;height:20px}
+.layer_action{display:none;position:absolute;width:100px;border:1px solid #272822;background:#fff;padding:10px}
+.layer_action a{display:inline-block;border:1px solid #272822;width:50px;text-align:center;padding:5px;margin:0 auto}
+.layer_action.show{display:block}
+.box{float:left;border:1px solid #272822;margin-right:10px;padding:10px}
+.box h3{padding:0;padding-bottom:10px}

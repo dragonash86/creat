@@ -250,14 +250,17 @@ var roomData = mongoose.Schema({
     full : {type : String},
     delete : {type : String},
     start : {type : String},
+    turn : {type : String},
     member : {type : [String]},
+    player_1 : [],
+    player_2 : [],
     created_at : {type : Date, default : Date.now}
 });
 var Room = mongoose.model('roomData', roomData);
 app.get('/main', function(req, res) {
 	if (req.user) {
 		User.find({_id : req.user._id}, {_id : 0, last_logout : 0, user_id : 0, user_pw : 0, __v : 0}, function(err, userValue) {
-			Room.find({full : "no", delete : "no"}, function(err, roomValue) {
+			Room.find({full : "no", delete : "no", member : req.user.user_nick}, function(err, roomValue) {
 				res.render('main', {user:userValue[0], room:roomValue});
 			});
 		});
@@ -281,8 +284,10 @@ app.post('/roomCreat', function(req, res) {
 		var room = new Room({
     	name : now,
     	admin : req.user.user_nick,
-		maxMember : 4,
+		maxMember : 2,
 		member : [req.user.user_nick],
+    	player_1 : [{nick:req.user.user_nick}, {gold:100}, {energy:10}, {action:1}],
+    	player_2 : [{nick:null}, {gold:100}, {energy:10}, {action:1}],
 		full : "no",
 		delete : "no",
 		start : "대기"
@@ -316,7 +321,7 @@ app.get('/room', function(req, res) {
 app.post('/joinRoom', function(req, res) {
 	if (req.user) {
 		var roomId = req.query.roomId;
-		Room.update({_id : roomId}, {$push : {member : req.user.user_nick}}, function(err) {
+		Room.update({_id : roomId}, {$push : {member : req.user.user_nick, player_2 : req.user.user_nick}}, function(err) {
 			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
@@ -327,7 +332,7 @@ app.post('/joinRoom', function(req, res) {
 app.post('/leaveRoom', function(req, res) {
 	if (req.user) {
 		var roomId = req.query.roomId;
-		Room.update({_id : roomId}, {$pull : {member : req.user.user_nick}}, function(err) {
+		Room.update({_id : roomId}, {$pull : {member : req.user.user_nick, player_2 : req.user.user_nick}}, function(err) {
 			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
@@ -349,8 +354,8 @@ app.post('/deleteRoom', function(req, res) {
 app.post('/startRoom', function(req, res) {
 	if (req.user) {
 		var roomId = req.query.roomId;
-		Room.update({_id : roomId}, {$set : {start : "진행 중"}}, function(err) {
-			res.redirect('/game');
+		Room.update({_id : roomId}, {$set : {start : "진행 중", turn : req.user.user_nick}}, function(err) {
+			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
 		res.render('login');
