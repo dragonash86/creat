@@ -252,8 +252,9 @@ var roomData = mongoose.Schema({
     start : {type : String},
     turn : {type : String},
     member : {type : [String]},
-    player_1 : [],
-    player_2 : [],
+    player_1 : {},
+    player_2 : {},
+    build : [],
     created_at : {type : Date, default : Date.now}
 });
 var Room = mongoose.model('roomData', roomData);
@@ -286,8 +287,9 @@ app.post('/roomCreat', function(req, res) {
     	admin : req.user.user_nick,
 		maxMember : 2,
 		member : [req.user.user_nick],
-    	player_1 : [{nick:req.user.user_nick}, {gold:100}, {energy:10}, {action:1}],
-    	player_2 : [{nick:null}, {gold:100}, {energy:10}, {action:1}],
+    	player_1 : {nick : req.user.user_nick, gold : 100, energy : 10, action : 1},
+    	player_2 : {nick : null, gold : 100, energy : 10, action : 1},
+    	build : [{col : null, row : null, level : 0}],
 		full : "no",
 		delete : "no",
 		start : "대기"
@@ -309,6 +311,7 @@ app.get('/room', function(req, res) {
 		if (roomId != null) {
 			Room.find({_id : roomId}, function(err, roomValue) {
 				res.render('room', {room:roomValue[0], user:req.user});
+				console.log(roomValue[0].board);
 			});
 		} else {
 			res.send('<script>alert("잘못된 요청");location.href="/main";</script>');

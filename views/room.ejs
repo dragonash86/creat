@@ -1,5 +1,6 @@
 <% include include/header.ejs %>
 	<div class="container room">
+	<% if (room.start === "대기") { %>
 		<h2>생성 시간 : <%= room.name %></h2>
 		<ul>
 			<li>방장 : <%= room.admin %></li>
@@ -12,15 +13,15 @@
 			<li>상태 : <%= room.start %></li>
 		</ul>
 		<%
-			if (user) { 
-				var count = 0;
-				for (var i = 0; i < room.member.length; i++) {
-					if (room.member[i] === user.user_nick) {
-						count = count + 1;
-					}
-				}	
-			}
-		%>
+            if (user) {
+                var count = 0;
+                for (var i = 0; i < room.member.length; i++) {
+                    if (room.member[i] === user.user_nick) {
+                        count = count + 1;
+                    }
+                }
+            }
+        %>
 		<% if (room.member.length !== room.maxMember && count === 0) { %>
 			<form action="/joinRoom?roomId=<%= room._id %>" method="post"><input type="submit" value="참가하기" /></form>
 		<% } else if (count !== 0 && room.admin !== user.user_nick) { %>
@@ -32,177 +33,72 @@
 		<% } if (room.admin === user.user_nick && room.start !== "진행 중") { %>
 			<form action="/deleteRoom?roomId=<%= room._id %>" method="post"><input type="submit" value="방폭" /></form>
 		<% } %>
-		<% if (room.start !== "대기") { %>
-			<h3>현재 턴 : <%= room.turn %></h3>
-			<% if (room.turn === user.user_nick) { %>
-				<script>
-					$(function() {
-						//현재 턴
-						$(".board td").addClass("active");
-					});
-				</script>
-				<% if (user) { %>
-					<form action="/turnEnd?roomId=<%= room._id %>" method="post"><input type="submit" value="턴 넘기기" /></form>
-				<% } %>
+	<% } else { %>
+		<%= room.player_1.nick %>
+		<h3>현재 턴 : <%= room.turn %></h3>
+		<% if (room.turn === user.user_nick) { %>
+			<script>
+				$(function() {
+					//현재 턴
+					$(".board td").addClass("active");
+				});
+			</script>
+			<% if (user) { %>
+				<form action="/turnEnd?roomId=<%= room._id %>" method="post"><input type="submit" value="턴 넘기기" /></form>
 			<% } %>
-			<table class="board">
-				<tr>
-					<td><a href=""><span>1-1</span></a></td>
-					<td><a href=""><span>1-2</span></a></td>
-					<td><a href=""><span>1-3</span></a></td>
-					<td><a href=""><span>1-4</span></a></td>
-					<td><a href=""><span>1-5</span></a></td>
-					<td><a href=""><span>1-6</span></a></td>
-					<td><a href=""><span>1-7</span></a></td>
-					<td><a href=""><span>1-8</span></a></td>
-					<td><a href=""><span>1-9</span></a></td>
-					<td><a href=""><span>1-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>2-1</span></a></td>
-					<td><a href=""><span>2-2</span></a></td>
-					<td><a href=""><span>2-3</span></a></td>
-					<td><a href=""><span>2-4</span></a></td>
-					<td><a href=""><span>2-5</span></a></td>
-					<td><a href=""><span>2-6</span></a></td>
-					<td><a href=""><span>2-7</span></a></td>
-					<td><a href=""><span>2-8</span></a></td>
-					<td><a href=""><span>2-9</span></a></td>
-					<td><a href=""><span>2-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>3-1</span></a></td>
-					<td><a href=""><span>3-2</span></a></td>
-					<td><a href=""><span>3-3</span></a></td>
-					<td><a href=""><span>3-4</span></a></td>
-					<td><a href=""><span>3-5</span></a></td>
-					<td><a href=""><span>3-6</span></a></td>
-					<td><a href=""><span>3-7</span></a></td>
-					<td><a href=""><span>3-8</span></a></td>
-					<td><a href=""><span>3-9</span></a></td>
-					<td><a href=""><span>3-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>4-1</span></a></td>
-					<td><a href=""><span>4-2</span></a></td>
-					<td><a href=""><span>4-3</span></a></td>
-					<td><a href=""><span>4-4</span></a></td>
-					<td><a href=""><span>4-5</span></a></td>
-					<td><a href=""><span>4-6</span></a></td>
-					<td><a href=""><span>4-7</span></a></td>
-					<td><a href=""><span>4-8</span></a></td>
-					<td><a href=""><span>4-9</span></a></td>
-					<td><a href=""><span>4-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>5-1</span></a></td>
-					<td><a href=""><span>5-2</span></a></td>
-					<td><a href=""><span>5-3</span></a></td>
-					<td><a href=""><span>5-4</span></a></td>
-					<td><a href=""><span>5-5</span></a></td>
-					<td><a href=""><span>5-6</span></a></td>
-					<td><a href=""><span>5-7</span></a></td>
-					<td><a href=""><span>5-8</span></a></td>
-					<td><a href=""><span>5-9</span></a></td>
-					<td><a href=""><span>5-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>6-1</span></a></td>
-					<td><a href=""><span>6-2</span></a></td>
-					<td><a href=""><span>6-3</span></a></td>
-					<td><a href=""><span>6-4</span></a></td>
-					<td><a href=""><span>6-5</span></a></td>
-					<td><a href=""><span>6-6</span></a></td>
-					<td><a href=""><span>6-7</span></a></td>
-					<td><a href=""><span>6-8</span></a></td>
-					<td><a href=""><span>6-9</span></a></td>
-					<td><a href=""><span>6-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>7-1</span></a></td>
-					<td><a href=""><span>7-2</span></a></td>
-					<td><a href=""><span>7-3</span></a></td>
-					<td><a href=""><span>7-4</span></a></td>
-					<td><a href=""><span>7-5</span></a></td>
-					<td><a href=""><span>7-6</span></a></td>
-					<td><a href=""><span>7-7</span></a></td>
-					<td><a href=""><span>7-8</span></a></td>
-					<td><a href=""><span>7-9</span></a></td>
-					<td><a href=""><span>7-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>8-1</span><span class="lv_1"></span></a></td>
-					<td><a href=""><span>8-2</span><span class="lv_2"></span></a></td>
-					<td><a href=""><span>8-3</span></a></td>
-					<td><a href=""><span>8-4</span></a></td>
-					<td><a href=""><span>8-5</span></a></td>
-					<td><a href=""><span>8-6</span></a></td>
-					<td><a href=""><span>8-7</span></a></td>
-					<td><a href=""><span>8-8</span></a></td>
-					<td><a href=""><span>8-9</span></a></td>
-					<td><a href=""><span>8-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>9-1</span></a></td>
-					<td><a href=""><span>9-2</span></a></td>
-					<td><a href=""><span>9-3</span></a></td>
-					<td><a href=""><span>9-4</span></a></td>
-					<td><a href=""><span>9-5</span></a></td>
-					<td><a href=""><span>9-6</span></a></td>
-					<td><a href=""><span>9-7</span></a></td>
-					<td><a href=""><span>9-8</span></a></td>
-					<td><a href=""><span>9-9</span></a></td>
-					<td><a href=""><span>9-10</span></a></td>
-				</tr>
-				<tr>
-					<td><a href=""><span>10-1</span></a></td>
-					<td><a href=""><span>10-2</span></a></td>
-					<td><a href=""><span>10-3</span></a></td>
-					<td><a href=""><span>10-4</span></a></td>
-					<td><a href=""><span>10-5</span></a></td>
-					<td><a href=""><span>10-6</span></a></td>
-					<td><a href=""><span>10-7</span></a></td>
-					<td><a href=""><span>10-8</span></a></td>
-					<td><a href=""><span>10-9</span></a></td>
-					<td><a href=""><span>10-10</span></a></td>
-				</tr>
-				<tr>
-			</table>
-			<div class="layer_action">
-				<% if (user) { %>
+		<% } %>
+		<table class="board">
+			<% for (i = 1; i <= 10; i++) { %>
+			<tr>
+				<% for (j = 1; j <= 10; j++) { %>
+				<td><a href="#n" class="p_<%= i %>_<%= j %>"><span><%= i %>-<%= j %></span></a></td>
 				<% } %>
-				<a href="#n" class="cancel">취소</a>
-			</div>
-			<div class="box">
-				<h3>Player 1 : <%= room.player_1[0].nick %></h3>
-				<ul>
-					<li>골드 : <%= room.player_1[1].gold %></li>
-					<li>에너지 : <%= room.player_1[2].energy %></li>
-				</ul>
-			</div>
-			<% if (room.player_2[0].nick !== null) { %>
-			<div class="box">
-				<h3>Player 2 : <%= room.player_2[0].nick %></h3>
-				<ul>
-					<li>골드 : <%= room.player_2[1].gold %></li>
-					<li>에너지 : <%= room.player_2[2].energy %></li>
-				</ul>
-			</div>
+			</tr>
 			<% } %>
-		<% }%>
+		</table>
+		<div class="layer_action">
+			<span></span>
+			<p></p>
+			<a href="#n" class="cancel">취소</a>
+		</div>
+		<div class="box">
+			<h3>Player 1 : <%= room.player_1.nick %></h3>
+			<ul>
+				<li>에너지 : <%= room.player_1.energy %></li>
+				<li>골드 : <%= room.player_1.gold %></li>
+			</ul>
+		</div>
+		<% if (room.player_2.nick !== null) { %>
+		<div class="box">
+			<h3>Player 2 : <%= room.player_2.nick %></h3>
+			<ul>
+				<li>에너지 : <%= room.player_2.energy %></li>
+				<li>골드 : <%= room.player_2.gold %></li>
+			</ul>
+		</div>
+		<% } %>
+	<% } %>
 	</div>
     <script>
     	$(function() {
-			//클릭 시
 			$(".board .active a").click(function(e) {
 				e.preventDefault();
-				$(".layer_action").fadeIn();
-      			$(".layer_action").css({"top":$(this).offset().top + 30, "left":$(this).offset().left + 30});
-      			console.log(this.text);
+				$(".layer_action").fadeIn(200);
+      			$(".layer_action").css({"top":$(this).offset().top + 30, "left":$(this).offset().left + 30},100);
+      			$(".layer_action span").html(this.text);
+      			$(".layer_action span").removeAttr("class");
+      			$(".layer_action span").addClass($(this)[0].className + " lv_0");
+      			if ($(".layer_action span").hasClass("lv_0")) {
+      				$(".layer_action p").html('<a href="#n" class="build">생산</a> 비용 : 10골드 + 2에너지');
+      			} else if ($(".layer_action span").hasClass("lv_1")) {
+      				$(".layer_action p").html('<a href="#n" class="build">업그레이드</a> 비용 : 20골드 + 3에너지');
+      			} else if ($(".layer_action span").hasClass("lv_2")) {
+      				$(".layer_action p").html('<a href="#n" class="build">업그레이드</a> 비용 : 50골드 + 5에너지');
+      			}
 			});
 			$(".layer_action a.cancel").click(function(e) {
 				e.preventDefault();
-				$(".layer_action").fadeOut();
+				$(".layer_action").fadeOut(200);
 			});
 		});
 	</script>
