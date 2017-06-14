@@ -373,16 +373,25 @@ app.get('/produce', function(req, res) {
 		var level = parseInt(req.query.level);
 		var reqEnergy;
 		var reqGold;
-		if (level==1){reqGold=10;reqEnergy=2;}
-		else if(level==2){reqGold=20;reqEnergy=3;}
-		else if(level==3){reqGold=50;reqEnergy=5;}
-		if(req.query.energy>=reqEnergy){
-			if(req.query.gold>=reqGold){
-				Room.findOneAndUpdate({_id : roomId, build : {$elemMatch: {locIndex : locIndex}}}, {$set : {'build.$.level' : level}, $inc : {'player_1.gold' : -reqGold, 'player_1.energy' : -reqEnergy}},function(err, room){
+		if (level === 1) { 
+			reqGold = 10;
+			reqEnergy = 2;
+		} else if (level === 2) {
+			reqGold = 20;
+			reqEnergy = 3;
+		} else if (level === 3) {
+			reqGold = 50;
+			reqEnergy = 5;
+		}
+		if (req.query.energy >= reqEnergy) {
+			if (req.query.gold >= reqGold) {
+				Room.findOneAndUpdate({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}}, {$set : {'build.$.level' : level}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy}}, function(err, room) {
 					res.redirect('/room?roomId='+roomId);
 				});
-			}else {res.send('<script>alert("골드가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');}
-		}else {res.send('<script>alert("에너지가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');}
+			} else {
+				res.send('<script>alert("골드가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
+			}
+		} else {res.send('<script>alert("에너지가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');}
 	} else {
 		res.render('login');
 	}
