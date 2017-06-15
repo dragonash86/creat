@@ -250,7 +250,8 @@ var roomData = mongoose.Schema({
     full : {type : String},
     delete : {type : String},
     start : {type : String},
-    turn : {type : String},
+    turn : [],
+	currentTurn : {type : Number},
     member : {type : [String]},
     player_1 : {},
     player_2 : {},
@@ -261,7 +262,7 @@ var Room = mongoose.model('roomData', roomData);
 app.get('/main', function(req, res) {
 	if (req.user) {
 		User.find({_id : req.user._id}, {_id : 0, last_logout : 0, user_id : 0, user_pw : 0, __v : 0}, function(err, userValue) {
-			Room.find({full : "no", delete : "no", member : req.user.user_nick}, function(err, roomValue) {
+			Room.find({full : "no", delete : "no"}, function(err, roomValue) {
 				res.render('main', {user:userValue[0], room:roomValue});
 			});
 		});
@@ -289,6 +290,7 @@ app.post('/roomCreat', function(req, res) {
 		member : [req.user.user_nick],
     	player_1 : {nick : req.user.user_nick, gold : 100, energy : 10, action : 1},
     	player_2 : {nick : null, gold : 100, energy : 10, action : 1},
+		currentTurn : 1,
 		full : "no",
 		delete : "no",
 		start : "대기"
@@ -325,7 +327,7 @@ app.get('/room', function(req, res) {
 app.post('/joinRoom', function(req, res) {
 	if (req.user) {
 		var roomId = req.query.roomId;
-		Room.update({_id : roomId}, {$push : {member : req.user.user_nick, player_2 : req.user.user_nick}}, function(err) {
+		Room.update({_id : roomId}, {$push : {member : req.user.user_nick}, $set : {'player_2.nick' : req.user.user_nick}}, function(err) {
 			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
@@ -336,7 +338,7 @@ app.post('/joinRoom', function(req, res) {
 app.post('/leaveRoom', function(req, res) {
 	if (req.user) {
 		var roomId = req.query.roomId;
-		Room.update({_id : roomId}, {$pull : {member : req.user.user_nick, player_2 : req.user.user_nick}}, function(err) {
+		Room.update({_id : roomId}, {$pull : {member : req.user.user_nick}, $set : {'player_2.nick' : null}}, function(err) {
 			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
@@ -358,7 +360,15 @@ app.post('/deleteRoom', function(req, res) {
 app.post('/startRoom', function(req, res) {
 	if (req.user) {
 		var roomId = req.query.roomId;
-		Room.update({_id : roomId}, {$set : {start : "진행 중", turn : req.user.user_nick}}, function(err) {
+		
+		Room.findOneAndUpdate({_id : roomId}, {$set : {start : "진행 중"}}, function(err, roomValue){
+			for (var max = roomValue.member.length, i = 0, temp, order; i<max; i++) {
+				order = Math.floor(Math.random() * (max-i));
+				temp = roomValue.member[i];
+				roomValue.member[i] = roomValue.member[order+i];
+				roomValue.member[order+i] = temp;
+				Room.update({_id : roomId}, {$push : {turn : roomValue.member[i]}}, function(err){});
+			}
 			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
@@ -383,15 +393,40 @@ app.get('/produce', function(req, res) {
 			reqGold = 50;
 			reqEnergy = 5;
 		}
-		if (req.query.energy >= reqEnergy) {
-			if (req.query.gold >= reqGold) {
-				Room.findOneAndUpdate({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}}, {$set : {'build.$.level' : level}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy}}, function(err, room) {
-					res.redirect('/room?roomId='+roomId);
-				});
-			} else {
-				res.send('<script>alert("골드가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
+		Room.findOne({_id : roomId}, function(err, roomValue) {
+			console.log(roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length], roomValue.player_1.nick, roomValue.player_2.nick);
+			if (roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length] === roomValue.player_1.nick) {
+				var factor = {$set : {'build.$.level' : level}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy}};
+				var currentEnergy = roomValue.player_1.energy;
+				var currentGold = roomValue.player_1.gold;
+			} else if (roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length] === roomValue.player_2.nick) {
+				var factor = {$set : {'build.$.level' : level}, $inc : {'player_2.gold' : - reqGold, 'player_2.energy' : - reqEnergy}};
+				var currentEnergy = roomValue.player_2.energy;
+				var currentGold = roomValue.player_2.gold;
 			}
-		} else {res.send('<script>alert("에너지가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');}
+			if (currentEnergy >= reqEnergy) {
+				if (currentGold >= reqGold) {
+					Room.findOneAndUpdate({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}}, factor, function(err, room) {
+						res.redirect('/room?roomId='+roomId);
+					});
+				} else {
+					res.send('<script>alert("골드가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
+				}
+			} else {
+				res.send('<script>alert("에너지가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
+			}
+		});
+	} else {
+		res.render('login');
+	}
+});
+//턴넘기기
+app.post('/turnEnd', function(req,res) {
+	if (req.user) {
+		var roomId = req.query.roomId;
+		Room.findOneAndUpdate({_id : roomId}, {$inc : {currentTurn : 1}}, function(err,roomValue){
+			res.redirect('/room?roomId='+roomId);
+		});
 	} else {
 		res.render('login');
 	}

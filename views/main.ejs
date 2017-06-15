@@ -4,6 +4,8 @@
 		<h2>내 게임</h2>
 		<ul class="list">
 			<% for (i = 0; i < room.length; i++) { %>
+				<% for (j = 0; j < room[i].member.length; j++) { %>
+					<% if (user.user_nick === room[i].member[j]) { %>
 			<li>
 				<a href="/room?roomId=<%= room[i]._id %>">
 					<ul>
@@ -14,7 +16,7 @@
 					</ul>
 				</a>
 			</li>
-			<% } %>
+			<% } } } %>
 		</ul>
 		<h2>방 목록</h2>
 		<ul class="list">

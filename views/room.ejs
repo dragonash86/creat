@@ -35,9 +35,9 @@
 			<form action="/deleteRoom?roomId=<%= room._id %>" method="post"><input type="submit" value="방폭" /></form>
 		<% } %>
 	<% } else { %>
-		<%= room.player_1.nick %>
-		<h3>현재 턴 : <%= room.turn %></h3>
-		<% if (room.turn === user.user_nick) { %>
+		<%= user.user_nick %>
+		<h3>현재 턴 : <%= room.turn[(room.currentTurn-1)%room.member.length] %></h3>
+		<% if (room.turn[(room.currentTurn-1)%room.member.length] === user.user_nick) { %>
 			<script>
 				$(function() {
 					//현재 턴
@@ -97,11 +97,11 @@
       			$(".layer_action span").removeAttr("class");
 				$(".layer_action span").addClass($(this)[0].className + " lv_"+level);
 				if ($(".layer_action span").hasClass("lv_0")) {
-      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&energy=<%=room.player_1.energy%>&gold=<%=room.player_1.gold%>&level=1&locIndex='+locIndex+'" class="build">생산</a> 비용 : 10골드 + 2에너지');
+      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=1&locIndex='+locIndex+'" class="build">생산</a> 비용 : 10골드 + 2에너지');
       			} else if ($(".layer_action span").hasClass("lv_1")) {
-      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&energy=<%=room.player_1.energy%>&gold=<%=room.player_1.gold%>&level=2&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 20골드 + 3에너지');
+      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=2&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 20골드 + 3에너지');
       			} else if ($(".layer_action span").hasClass("lv_2")) {
-      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&energy=<%=room.player_1.energy%>&gold=<%=room.player_1.gold%>&level=3&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 50골드 + 5에너지');
+      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=3&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 50골드 + 5에너지');
       			}
 			});
 			$(".layer_action a.cancel").click(function(e) {
