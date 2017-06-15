@@ -394,7 +394,6 @@ app.get('/produce', function(req, res) {
 			reqEnergy = 5;
 		}
 		Room.findOne({_id : roomId}, function(err, roomValue) {
-			console.log(roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length], roomValue.player_1.nick, roomValue.player_2.nick);
 			if (roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length] === roomValue.player_1.nick) {
 				var factor = {$set : {'build.$.level' : level}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy}};
 				var currentEnergy = roomValue.player_1.energy;
