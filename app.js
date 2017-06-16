@@ -7,6 +7,7 @@ var LocalStrategy = require('passport-local').Strategy;
 var NaverStrategy = require('passport-naver').Strategy;
 var flash = require('connect-flash');
 var app = express();
+var http = require('http');
 
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.urlencoded({extended : false}));
@@ -49,8 +50,32 @@ db.on("error",function (err) {
 	console.log("DB ERROR :", err);
 });
 //서버 시작
-app.listen(3000);
-console.log("Server running on port 3000");
+// app.listen(3000);
+var httpServer = http.createServer(app).listen(3000, function(req, res){
+  console.log("Server running on port 3000");
+});
+
+//socket.io
+var io = require('socket.io').listen(httpServer);
+
+io.sockets.on('connection', function(socket){
+  //console.log('user connected: ', socket.id);
+  socket.on('send id', function(userNick){
+	User.findOneAndUpdate({user_nick : userNick}, {$set : {'socketID' : socket.id}}, function(err) {});
+  });
+ 
+  socket.on('end turn', function(thisTurnUser){
+	  console.log(thisTurnUser);
+	  User.findOne({user_nick : thisTurnUser}, function(err, user){
+		  io.to(user.socketID).emit('alert', "message");
+	  });
+  });
+  var name = "user";
+  io.to(socket.id).emit('change name',name);
+  socket.on('disconnect', function(){
+    //console.log('user disconnected: ', socket.id);
+  });
+});
 
 //유저전역 스키마 생성
 var userData = mongoose.Schema({
@@ -70,7 +95,8 @@ var userData = mongoose.Schema({
     email : {type : String},
     sns : {type : String},
     created_at : {type : Date, default : Date.now},
-    last_logout : {type : Date}
+    last_logout : {type : Date},
+	socketID : {type : String, unique : true}
 });
 //패스워드 비교 userData를 User에 담기 전에 이걸 써넣어야 로그인 사용가능
 userData.methods.validPassword = function(password) {
@@ -97,7 +123,8 @@ app.post('/joinForm', function(req, res) {
     	log_buy : [],
     	read_log : [],
     	email : "",
-    	sns : ""
+    	sns : "",
+		socketID : null
    	});
     user.save(function(err) {
         if (err) {
@@ -252,6 +279,7 @@ var roomData = mongoose.Schema({
     start : {type : String},
     turn : [],
 	currentTurn : {type : Number},
+	action : {type : Number},
     member : {type : [String]},
     player_1 : {},
     player_2 : {},
@@ -291,6 +319,7 @@ app.post('/roomCreat', function(req, res) {
     	player_1 : {nick : req.user.user_nick, gold : 100, energy : 10, action : 1},
     	player_2 : {nick : null, gold : 100, energy : 10, action : 1},
 		currentTurn : 1,
+		action : 2,
 		full : "no",
 		delete : "no",
 		start : "대기"
@@ -394,12 +423,13 @@ app.get('/produce', function(req, res) {
 			reqEnergy = 5;
 		}
 		Room.findOne({_id : roomId}, function(err, roomValue) {
+			if (roomValue.action > 0) {
 			if (roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length] === roomValue.player_1.nick) {
-				var factor = {$set : {'build.$.level' : level}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy}};
+				var factor = {$set : {'build.$.level' : level}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy, action : -1}};
 				var currentEnergy = roomValue.player_1.energy;
 				var currentGold = roomValue.player_1.gold;
 			} else if (roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length] === roomValue.player_2.nick) {
-				var factor = {$set : {'build.$.level' : level}, $inc : {'player_2.gold' : - reqGold, 'player_2.energy' : - reqEnergy}};
+				var factor = {$set : {'build.$.level' : level}, $inc : {'player_2.gold' : - reqGold, 'player_2.energy' : - reqEnergy, action : -1}};
 				var currentEnergy = roomValue.player_2.energy;
 				var currentGold = roomValue.player_2.gold;
 			}
@@ -414,6 +444,9 @@ app.get('/produce', function(req, res) {
 			} else {
 				res.send('<script>alert("에너지가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
 			}
+			} else {
+				res.send('<script>alert("에너지가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
+			}
 		});
 	} else {
 		res.render('login');
@@ -423,7 +456,7 @@ app.get('/produce', function(req, res) {
 app.post('/turnEnd', function(req,res) {
 	if (req.user) {
 		var roomId = req.query.roomId;
-		Room.findOneAndUpdate({_id : roomId}, {$inc : {currentTurn : 1}}, function(err,roomValue){
+		Room.findOneAndUpdate({_id : roomId}, {$inc : {currentTurn : 1}, $set : {action : 2} }, function(err,roomValue){
 			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
