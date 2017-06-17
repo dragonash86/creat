@@ -65,7 +65,7 @@ io.sockets.on('connection', function(socket){
   });
  
   socket.on('end turn', function(thisTurnUser){
-	  console.log(thisTurnUser);
+	  //console.log(thisTurnUser);
 	  User.findOne({user_nick : thisTurnUser}, function(err, user){
 		  io.to(user.socketID).emit('alert', "message");
 	  });
@@ -124,7 +124,7 @@ app.post('/joinForm', function(req, res) {
     	read_log : [],
     	email : "",
     	sns : "",
-		socketID : null
+	socketID : null
    	});
     user.save(function(err) {
         if (err) {
@@ -324,7 +324,7 @@ app.post('/roomCreat', function(req, res) {
 		delete : "no",
 		start : "대기"
    	});
-	for(var i=0;i<=100;i++)room.build[i] = {locIndex : i, level : 0};
+	for(var i=0;i<=100;i++)room.build[i] = {locIndex : i, level : 0, owner : null};
     room.save(function(err) {
         if (err) {
         	res.send('<script>alert("에러남");location.href="/join";</script>');
@@ -422,21 +422,23 @@ app.get('/produce', function(req, res) {
 			reqGold = 50;
 			reqEnergy = 5;
 		}
-		Room.findOne({_id : roomId}, function(err, roomValue) {
+		Room.findOne({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}},{action : true, player_1 : true, player_2 : true, build : {$elemMatch : {locIndex : locIndex}}}, function(err, roomValue) {
+			//console.log(roomValue.build[0].owner);
+			if ((req.user.user_nick === roomValue.build[0].owner) || (roomValue.build[0].owner === null) || (roomValue.build[0].owner === undefined)) {
 			if (roomValue.action > 0) {
-			if (roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length] === roomValue.player_1.nick) {
-				var factor = {$set : {'build.$.level' : level}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy, action : -1}};
+			if (req.user.user_nick === roomValue.player_1.nick) {
+				var factor = {$set : {'build.$.level' : level, 'build.$.owner' : req.user.user_nick}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy, action : -1}};
 				var currentEnergy = roomValue.player_1.energy;
 				var currentGold = roomValue.player_1.gold;
-			} else if (roomValue.turn[(roomValue.currentTurn-1)%roomValue.member.length] === roomValue.player_2.nick) {
-				var factor = {$set : {'build.$.level' : level}, $inc : {'player_2.gold' : - reqGold, 'player_2.energy' : - reqEnergy, action : -1}};
+			} else if (req.user.user_nick  === roomValue.player_2.nick) {
+				var factor = {$set : {'build.$.level' : level, 'build.$.owner' : req.user.user_nick}, $inc : {'player_2.gold' : - reqGold, 'player_2.energy' : - reqEnergy, action : -1}};
 				var currentEnergy = roomValue.player_2.energy;
 				var currentGold = roomValue.player_2.gold;
 			}
 			if (currentEnergy >= reqEnergy) {
 				if (currentGold >= reqGold) {
 					Room.findOneAndUpdate({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}}, factor, function(err, room) {
-						res.redirect('/room?roomId='+roomId);
+							res.redirect('/room?roomId='+roomId);
 					});
 				} else {
 					res.send('<script>alert("골드가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
@@ -445,7 +447,9 @@ app.get('/produce', function(req, res) {
 				res.send('<script>alert("에너지가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
 			}
 			} else {
-				res.send('<script>alert("에너지가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
+				res.send('<script>alert("액션포인트가 부족합니다.");location.href="/room?roomId='+roomId+'";</script>');
+			}} else {
+				res.send('<script>alert("생산할 수 없는 지역입니다.");location.href="/room?roomId='+roomId+'";</script>');
 			}
 		});
 	} else {

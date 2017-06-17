@@ -59,7 +59,8 @@
 			
 			<tr>
 				<% for (j = 1; j <= 10; j++) { %>
-				<td><a href="#n" class="p_<%= i %>_<%= j %>"><span><%= i %>-<%= j %></span><br /><p><%= room.build[(i-1)*10+j].level%></p></a></td>
+				<td><a href="#n" class="p_<%= i %>_<%= j %>"><span><%= i %>-<%= j %></span><br />
+				<p class="<% for (var k=0;k<room.turn.length;k++){if (room.build[(i-1)*10+j].owner === room.turn[k]){%>player<%= k %><% }} %>"><%= room.build[(i-1)*10+j].level %></p></a></td>
 				<% } %>
 			</tr>
 			<% } %>
@@ -70,7 +71,7 @@
 			<a href="#n" class="cancel">취소</a>
 		</div>
 		<div class="box">
-			<h3>Player 1 : <%= room.player_1.nick %></h3>
+			<h3 class="player0">Player 1 : <%= room.player_1.nick %></h3>
 			<ul>
 				<li>에너지 : <%= room.player_1.energy %></li>
 				<li>골드 : <%= room.player_1.gold %></li>
@@ -78,7 +79,7 @@
 		</div>
 		<% if (room.player_2.nick !== null) { %>
 		<div class="box">
-			<h3>Player 2 : <%= room.player_2.nick %></h3>
+			<h3 class="player1">Player 2 : <%= room.player_2.nick %></h3>
 			<ul>
 				<li>에너지 : <%= room.player_2.energy %></li>
 				<li>골드 : <%= room.player_2.gold %></li>
@@ -90,25 +91,38 @@
 	<script src="/socket.io/socket.io.js"></script>
     <script>
     	$(function() {
-			$(".board .active a").click(function(e) {	
+			$(".board .active a").click(function(e) {
+			
 				e.preventDefault();
 				var location=this.getElementsByTagName('span')[0].innerText;
 				var level=this.getElementsByTagName('p')[0].innerText;
 				var row=parseInt(location.substring(0,this.text.indexOf('-')));
 				var col=parseInt(location.substring(this.text.indexOf('-')+1,this.text.indexOf('-')+3));
-				var locIndex=(row-1)*10+col
-				$(".layer_action").fadeIn(200);
-      			$(".layer_action").css({"top":$(this).offset().top + 30, "left":$(this).offset().left + 30},100);
-      			$(".layer_action span").html(location);
-      			$(".layer_action span").removeAttr("class");
-				$(".layer_action span").addClass($(this)[0].className + " lv_"+level);
-				if ($(".layer_action span").hasClass("lv_0")) {
-      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=1&locIndex='+locIndex+'" class="build">생산</a> 비용 : 10골드 + 2에너지');
-      			} else if ($(".layer_action span").hasClass("lv_1")) {
-      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=2&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 20골드 + 3에너지');
-      			} else if ($(".layer_action span").hasClass("lv_2")) {
-      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=3&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 50골드 + 5에너지');
-      			}
+				var locIndex=(row-1)*10+col;
+				//if ( === )
+				var test = "."+$(this)[0].className+" p";
+				var i= <% for (var i = 0; i < room.turn.length; i++) {
+					if ( user.user_nick === room.turn[i] ) {
+						%><%=i%>
+						<%}}%>;
+						//alert(i);
+				if ($(test)[0].className==="player"+i || $(test)[0].className===""){
+					//alert('성공');
+					$(".layer_action").fadeIn(200);
+	      				$(".layer_action").css({"top":$(this).offset().top + 30, "left":$(this).offset().left + 30},100);
+	      				$(".layer_action span").html(location);
+	      				$(".layer_action span").removeAttr("class");
+					$(".layer_action span").addClass($(this)[0].className + " lv_"+level);
+					if ($(".layer_action span").hasClass("lv_0")) {
+	      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=1&locIndex='+locIndex+'" class="build">생산</a> 비용 : 10골드 + 2에너지');
+	      				} else if ($(".layer_action span").hasClass("lv_1")) {
+	      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=2&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 20골드 + 3에너지');
+	      				} else if ($(".layer_action span").hasClass("lv_2")) {
+	      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=3&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 50골드 + 5에너지');
+					}
+				}
+				else;
+					//alert('실패'+$(test)[0].className);
 			});
 			$(".layer_action a.cancel").click(function(e) {
 				e.preventDefault();
