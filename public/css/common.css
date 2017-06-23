@@ -63,6 +63,8 @@ h3{padding:20px 0}
 .main .list li.last input{width:143px;height:144px}
 /* 게임 */
 .room{padding:20px}
+.boss{border: 1px solid #272822; margin:auto; width:100px; text-align:center;}
+.boss h3{padding:0;padding-bottom:10px}
 .board{margin:30px auto}
 .board td{position:relative;border:1px solid #272822;width:50px;height:50px}
 .board td.active{border:1px dashed #36D136}

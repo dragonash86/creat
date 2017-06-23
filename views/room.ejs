@@ -1,5 +1,4 @@
 <% include include/header.ejs %>
-
 	<div class="container room">
 	<% if (room.start === "대기") { %>
 		<h2>생성 시간 : <%= room.name %></h2>
@@ -16,7 +15,7 @@
 		<%
             if (user) {
                 var count = 0;
-                for (var i = 0; i < room.member.length; i++) {
+                for (i = 0; i < room.member.length; i++) {
                     if (room.member[i] === user.user_nick) {
                         count = count + 1;
                     }
@@ -36,8 +35,9 @@
 		<% } %>
 	<% } else { %>
 		<%= user.user_nick %>
-		<h3>현재 턴 : <%= room.turn[(room.currentTurn-1)%room.member.length] %></h3>
-		<% if (room.turn[(room.currentTurn-1)%room.member.length] === user.user_nick) { %>
+		<h3>라운드 <%= room.round %></h3>
+		<h3>현재 턴 : <%= room.player[(room.currentTurn-1)%room.member.length].nick %></h3>
+		<% if (room.player[(room.currentTurn-1)%room.member.length].nick === user.user_nick) { %>
 			<% if (room.action > 0) { %>
 			<script>
 				$(function() {
@@ -52,15 +52,22 @@
 					<li>총 턴 수 : <%= room.currentTurn %></li>
 				</ul>
 				<form action="/turnEnd?roomId=<%= room._id %>" id="endTurn" method="post"><input type="submit" value="턴 넘기기" /></form>
+				<form action="/pass?roomId=<%= room._id %>" id="pass" method="post"><input type="submit" value="패스" /></form>
 			<% } %>
 		<% } %>
+		<div class="boss">
+			<h3>B O S S </h3>
+			<ul>
+				<li>체력 : <%=room.boss%></li>
+			</ul>
+		</div>
 		<table class="board">
-			<% for (i = 1; i <= 10; i++) { %>
+			<% for (var i = 1; i <= 10; i++) { %>
 			
 			<tr>
-				<% for (j = 1; j <= 10; j++) { %>
+				<% for (var j = 1; j <= 10; j++) { %>
 				<td><a href="#n" class="p_<%= i %>_<%= j %>"><span><%= i %>-<%= j %></span><br />
-				<p class="<% for (var k=0;k<room.turn.length;k++){if (room.build[(i-1)*10+j].owner === room.turn[k]){%>player<%= k %><% }} %>"><%= room.build[(i-1)*10+j].level %></p></a></td>
+				<p class="<% for (var k=0;k<room.player.length;k++){if (room.build[(i-1)*10+j].owner === room.player[k].nick){%>player<%= k %><% }} %>"><%= room.build[(i-1)*10+j].level %></p></a></td>
 				<% } %>
 			</tr>
 			<% } %>
@@ -70,19 +77,15 @@
 			<p></p>
 			<a href="#n" class="cancel">취소</a>
 		</div>
+		<% for (i =0; i<room.player.length; i++) {%>
 		<div class="box">
-			<h3 class="player0">Player 1 : <%= room.player_1.nick %></h3>
+			<h3 class="player<%= i %>">Player <%= i+1 %> : <%= room.player[i].nick %></h3>
 			<ul>
-				<li>에너지 : <%= room.player_1.energy %></li>
-				<li>골드 : <%= room.player_1.gold %></li>
-			</ul>
-		</div>
-		<% if (room.player_2.nick !== null) { %>
-		<div class="box">
-			<h3 class="player1">Player 2 : <%= room.player_2.nick %></h3>
-			<ul>
-				<li>에너지 : <%= room.player_2.energy %></li>
-				<li>골드 : <%= room.player_2.gold %></li>
+				<li>에너지 : <%= room.player[i].energy %></li>
+				<li>골드 : <%= room.player[i].gold %></li>
+				<li>골드수입 : <%= room.player[i].incGold %></li>
+				<li>에너지수입 : <%= room.player[i].incEnergy %></li>
+				<li>총 데미지 : <%= room.player[i].damage %></li>
 			</ul>
 		</div>
 		<% } %>
@@ -92,7 +95,6 @@
     <script>
     	$(function() {
 			$(".board .active a").click(function(e) {
-			
 				e.preventDefault();
 				var location=this.getElementsByTagName('span')[0].innerText;
 				var level=this.getElementsByTagName('p')[0].innerText;
@@ -101,12 +103,12 @@
 				var locIndex=(row-1)*10+col;
 				//if ( === )
 				var test = "."+$(this)[0].className+" p";
-				var i= <% for (var i = 0; i < room.turn.length; i++) {
-					if ( user.user_nick === room.turn[i] ) {
+				var num= <% for (var i = 0; i < room.player.length; i++) {
+					if ( user.user_nick === room.player[i].nick ) {
 						%><%=i%>
 						<%}}%>;
 						//alert(i);
-				if ($(test)[0].className==="player"+i || $(test)[0].className===""){
+				if ($(test)[0].className==="player"+num || $(test)[0].className===""){
 					//alert('성공');
 					$(".layer_action").fadeIn(200);
 	      				$(".layer_action").css({"top":$(this).offset().top + 30, "left":$(this).offset().left + 30},100);
@@ -131,11 +133,16 @@
 				
 		});
 		//소켓;턴넘길때 소리 재생
+		
 		var socket = io.connect('http://localhost:3000');
 		socket.emit('send id', '<%=user.user_nick%>');
+		/*
 		$('#endTurn').on('submit', function(e){
-			socket.emit('end turn', '<%=room.turn[room.currentTurn%room.member.length]%>');
+			<% if(room.player.length) {%>
+				socket.emit('end turn', '<%=room.player[room.currentTurn%room.member.length].nick%>');
+			<%}%>
 		});
+		*/
 		socket.on('alert', function(e){
 			var audio = new Audio('https://player.bgmstore.net/k9l2X/mp4');
 			audio.play();

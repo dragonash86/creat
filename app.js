@@ -7,8 +7,9 @@ var LocalStrategy = require('passport-local').Strategy;
 var NaverStrategy = require('passport-naver').Strategy;
 var flash = require('connect-flash');
 var app = express();
-var http = require('http');
-
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+var Rndld = null;
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.urlencoded({extended : false}));
 app.use(session({
@@ -50,25 +51,37 @@ db.on("error",function (err) {
 	console.log("DB ERROR :", err);
 });
 //서버 시작
-// app.listen(3000);
-var httpServer = http.createServer(app).listen(3000, function(req, res){
-  console.log("Server running on port 3000");
-});
+server.listen(3000);
+
 
 //socket.io
-var io = require('socket.io').listen(httpServer);
 
-io.sockets.on('connection', function(socket){
+
+io.on('connection', function(socket){
   //console.log('user connected: ', socket.id);
+  if (Rndld !== null)
+  {
+  	User.findOne({user_nick : Rndld}, function(err, user){
+  		console.log(Rndld);
+  		Rndld = null
+		io.to(user.socketID).emit('alert', "message");
+	 });
+  }
   socket.on('send id', function(userNick){
 	User.findOneAndUpdate({user_nick : userNick}, {$set : {'socketID' : socket.id}}, function(err) {});
   });
- 
+ /*
   socket.on('end turn', function(thisTurnUser){
 	  //console.log(thisTurnUser);
+	  console.log("이게 소켓 메시지");
 	  User.findOne({user_nick : thisTurnUser}, function(err, user){
 		  io.to(user.socketID).emit('alert', "message");
 	  });
+	  
+  });
+  */
+  socket.on('hey', function(hey){
+  	console.log(hey);
   });
   var name = "user";
   io.to(socket.id).emit('change name',name);
@@ -277,13 +290,16 @@ var roomData = mongoose.Schema({
     full : {type : String},
     delete : {type : String},
     start : {type : String},
-    turn : [],
+    player : [],
 	currentTurn : {type : Number},
 	action : {type : Number},
     member : {type : [String]},
     player_1 : {},
     player_2 : {},
     build : [],
+    boss : {type : Number},
+    round : {type : Number},
+    rmt : [],
     created_at : {type : Date, default : Date.now}
 });
 var Room = mongoose.model('roomData', roomData);
@@ -322,9 +338,19 @@ app.post('/roomCreat', function(req, res) {
 		action : 2,
 		full : "no",
 		delete : "no",
-		start : "대기"
+		start : "대기",
+		boss : 100,
+		round : 1
    	});
-	for(var i=0;i<=100;i++)room.build[i] = {locIndex : i, level : 0, owner : null};
+	for (var i=0, row, col;i<=100;i++) {
+		row = parseInt(i/10)+1;
+		col =  i%10;
+		if (col === 0) {
+			row -= 1;
+			col = 10;
+		}
+		room.build[i] = {locIndex : i, level : 0, owner : null, row : row, col : col};
+	}
     room.save(function(err) {
         if (err) {
         	res.send('<script>alert("에러남");location.href="/join";</script>');
@@ -396,7 +422,7 @@ app.post('/startRoom', function(req, res) {
 				temp = roomValue.member[i];
 				roomValue.member[i] = roomValue.member[order+i];
 				roomValue.member[order+i] = temp;
-				Room.update({_id : roomId}, {$push : {turn : roomValue.member[i]}}, function(err){});
+				Room.update({_id : roomId}, {$push : {player : {nick : roomValue.member[i], gold : 100, energy : 10, incGold : 0, incEnergy : 0, damage : 0, score : 0, pass:false}}}, function(err){});
 			}
 			res.redirect('/room?roomId='+roomId);
 		});
@@ -412,32 +438,111 @@ app.get('/produce', function(req, res) {
 		var level = parseInt(req.query.level);
 		var reqEnergy;
 		var reqGold;
+		var incGold;
+		var incEnergy;
+		var damage;
+
 		if (level === 1) { 
 			reqGold = 10;
 			reqEnergy = 2;
+			incGold = 2;
+			incEnergy = 2;
+			damage = 2;
 		} else if (level === 2) {
 			reqGold = 20;
 			reqEnergy = 3;
+			incGold = 3-2;
+			incEnergy = 3-2;
+			damage = 3-2;
 		} else if (level === 3) {
 			reqGold = 50;
 			reqEnergy = 5;
+			incGold = 5-3;
+			incEnergy = 5-3;
+			damage =  5-3;
 		}
-		Room.findOne({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}},{action : true, player_1 : true, player_2 : true, build : {$elemMatch : {locIndex : locIndex}}}, function(err, roomValue) {
-			//console.log(roomValue.build[0].owner);
+
+		Room.findOne({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}},{action : true, player_1 : true, player_2 : true, player : true, build : {$elemMatch : {locIndex : locIndex}}}, function(err, roomValue) {
+			
 			if ((req.user.user_nick === roomValue.build[0].owner) || (roomValue.build[0].owner === null) || (roomValue.build[0].owner === undefined)) {
 			if (roomValue.action > 0) {
-			if (req.user.user_nick === roomValue.player_1.nick) {
-				var factor = {$set : {'build.$.level' : level, 'build.$.owner' : req.user.user_nick}, $inc : {'player_1.gold' : - reqGold, 'player_1.energy' : - reqEnergy, action : -1}};
-				var currentEnergy = roomValue.player_1.energy;
-				var currentGold = roomValue.player_1.gold;
-			} else if (req.user.user_nick  === roomValue.player_2.nick) {
-				var factor = {$set : {'build.$.level' : level, 'build.$.owner' : req.user.user_nick}, $inc : {'player_2.gold' : - reqGold, 'player_2.energy' : - reqEnergy, action : -1}};
-				var currentEnergy = roomValue.player_2.energy;
-				var currentGold = roomValue.player_2.gold;
+			if (req.user.user_nick === roomValue.player[0].nick) {
+				var factor = {$set : {'build.$.level' : level, 'build.$.owner' : req.user.user_nick}};
+				var factor2 = {$inc : {'player.$.gold': - reqGold, 'player.$.energy' : - reqEnergy, 'player.$.incGold' : incGold, 'player.$.incEnergy' : incEnergy, 'player.$.damage' : damage, action : -1}};
+				var currentEnergy = roomValue.player[0].energy;
+				var currentGold = roomValue.player[0].gold;
+			} else if (req.user.user_nick  === roomValue.player[1].nick) {
+				var factor = {$set : {'build.$.level' : level, 'build.$.owner' : req.user.user_nick}};
+				var factor2 = {$inc : {'player.$.gold': - reqGold, 'player.$.energy' : - reqEnergy, 'player.$.incGold' : incGold, 'player.$.incEnergy' : incEnergy, 'player.$.damage' : damage, action : -1}};
+				var currentEnergy = roomValue.player[1].energy;
+				var currentGold = roomValue.player[1].gold;
 			}
 			if (currentEnergy >= reqEnergy) {
 				if (currentGold >= reqGold) {
-					Room.findOneAndUpdate({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}}, factor, function(err, room) {
+					Room.findOneAndUpdate({_id : roomId, build : {$elemMatch : {locIndex : locIndex}}}, factor, {new : true}, function(err, room) {
+							Room.findOneAndUpdate({_id : roomId,  player : {$elemMatch : {nick : req.user.user_nick}}}, factor2, function(err, room) {});
+							var row = parseInt(locIndex/10);
+							var col = locIndex%10
+						
+							if (locIndex === 1) {
+								//+1, +9, +10
+								SLandS(room, roomId, req.user.user_nick, locIndex, 1);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 10);
+							} else if (locIndex === 10) {
+								//-1, +9, +10
+								SLandS(room, roomId, req.user.user_nick, locIndex, -1);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 10);
+							} else if (locIndex === 91) {
+								//-10, -9, +1
+								SLandS(room, roomId, req.user.user_nick, locIndex, -10);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 1);
+							} else if (locIndex === 100) {
+								//-10,-11, -1
+								SLandS(room, roomId, req.user.user_nick, locIndex, -11);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -10);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -1);
+							} else if (col === 0) {
+								//-10, -11, -1, +9, +10
+								SLandS(room, roomId, req.user.user_nick, locIndex, -11);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -10);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -1);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 10);
+							} else if (col === 1) {
+								//-10, -9, +1, +10, +11
+								SLandS(room, roomId, req.user.user_nick, locIndex, 11);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 10);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 1);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -10);
+							} else if (row === 0) {
+								//-1, +1, +9, +10, +11
+								SLandS(room, roomId, req.user.user_nick, locIndex, 11);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 10);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 1);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -1);
+							} else if (row === 9) {
+								//-1, +1, -9, -10, -11
+								SLandS(room, roomId, req.user.user_nick, locIndex, -11);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -10);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -1);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 1);
+							} else {
+								//+1, -1, +9,10,11 -9,10,11
+								SLandS(room, roomId, req.user.user_nick, locIndex, -11);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -10);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, -1);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 1);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 9);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 10);
+								SLandS(room, roomId, req.user.user_nick, locIndex, 11);
+							}
 							res.redirect('/room?roomId='+roomId);
 					});
 				} else {
@@ -459,11 +564,124 @@ app.get('/produce', function(req, res) {
 //턴넘기기
 app.post('/turnEnd', function(req,res) {
 	if (req.user) {
+		console.log('이게 턴엔드 메시지');
 		var roomId = req.query.roomId;
-		Room.findOneAndUpdate({_id : roomId}, {$inc : {currentTurn : 1}, $set : {action : 2} }, function(err,roomValue){
+		Room.findOne({_id : roomId}, function(err,room){
+			room.currentTurn ++;
+			while (room.player[(room.currentTurn-1)%room.member.length].pass) {
+				room.currentTurn ++;
+			}
+			console.log(room.currentTurn);
+			Room.update({_id : roomId}, {$set : {action : 2, currentTurn : room.currentTurn} }, function (err){});
+			Rndld = room.player[(room.currentTurn-1)%room.member.length].nick;
 			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
 		res.render('login');
 	}
 });
+//턴넘기기
+app.get('/turnEnd', function(req,res) {
+	if (req.user) {
+		console.log('이게 턴엔드 메시지');
+		var roomId = req.query.roomId;
+		Room.findOne({_id : roomId}, function(err,room){
+			room.currentTurn ++;
+			while (room.player[(room.currentTurn-1)%room.member.length].pass) {
+				room.currentTurn ++;
+			}
+			console.log(room.currentTurn);
+			Room.update({_id : roomId}, {$set : {action : 2, currentTurn : room.currentTurn} }, function (err){});
+			Rndld = room.player[(room.currentTurn-1)%room.member.length].nick;
+			res.redirect('/room?roomId='+roomId);
+		});
+	} else {
+		res.render('login');
+	}
+});
+//패스
+app.post('/pass', function(req,res){
+	if (req.user) {
+		var roomId = req.query.roomId;
+		Room.findOneAndUpdate({_id : roomId, player : {$elemMatch : {nick : req.user.user_nick}}}, {$set : {'player.$.pass' : true, action : 2}}, {new : true}, function (err, room) {
+			for (var i =0, j=0; i<room.player.length; i++) {
+				if (!room.player[i].pass) {
+					j++;
+				}
+			}
+			if (j === 0) {
+				//라운드 종료
+				for(var i =0, damage=0; i<room.player.length; i++) {
+					room.player[i].gold += room.player[i].incGold;
+					room.player[i].energy += room.player[i].incEnergy;
+					room.player[i].pass = false;
+					damage +=room.player[i].damage;
+				}
+				Room.update({_id : roomId}, {$set : {player : room.player}, $inc : {round : 1, boss : -damage}} , function(err){});
+				console.log(room.player);
+			}
+			console.log(room.player);
+			res.redirect('/turnEnd?roomId='+roomId);
+		});
+	} else {
+		res.render('login');
+	}
+});
+
+//파워
+function SLandS(room, roomId, user_nick, locIndex, n) {
+	if (room.build[locIndex+n].owner !== null && room.build[locIndex+n].owner !== user_nick) {
+		if (room.build[locIndex+n].level==1) {
+			var bonEnergy = 2;
+		}
+		else if (room.build[locIndex+n].level==2) {
+			var bonEnergy = 3;
+		}
+		else if (room.build[locIndex+n].level==3) {
+			var bonEnergy = 5;
+		}
+		Room.update({_id : roomId, player : {$elemMatch : {nick : room.build[locIndex+n].owner}}}, {$inc : {'player.$.energy' : bonEnergy}}, function(err){});
+		console.log(room.build[locIndex+n].owner,"는 파워를 받으라", room.build[locIndex+n].owner !== room.build[locIndex].owner, user_nick, room.build[locIndex+n].owner);
+	}
+}
+
+function RMT(room, roomId, user_nick, level) {
+	if (room.rmt[round-1]===1) {
+		//1단계 대포를 지으면 지을 때마다 3점
+		if (level === 1) {
+			Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 3}}, function(err){});
+		}
+	} else if (room.rmt[round-1]===2) {
+		//2단계 대포를 지으면 지을 때마다 3점
+		if (level === 2) {
+			Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 3}}, function(err){});
+		}
+	} else if (room.rmt[round-1]===3) {
+		//3단계 대포를 지으면 지을 때마다 5점
+		if (level === 3) {
+			Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 5}}, function(err){});
+		}
+	} else if (room.rmt[round-1]===4) {
+		//20 데미지 달성 시 10점
+		for (var i = 0; i < room.player.length ; i++) {
+			if ( room.player[i].nick === user_nick ) {
+				if (room.player[i].damage >= 20) {
+					Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 10}}, function(err){});
+				}
+				break;
+			}
+		}
+	} else if (room.rmt[round-1]===5) {
+		//건물 5개 지으면 10점
+		for (var i = 0; i < room.player.length ; i++) {
+			if ( room.player[i].nick === user_nick ) {
+				room.player[i].BuildingBuiltThisTurn ++;
+				if (room.player[i].BuildingBuiltThisTurn === 5) {
+					Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 10}}, function(err){});
+				}
+				break;
+			}
+		}
+	}
+
+}
