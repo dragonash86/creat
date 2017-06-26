@@ -63,10 +63,11 @@ io.on('connection', function(socket){
   {
   	User.findOne({user_nick : Rndld}, function(err, user){
   		console.log(Rndld);
-  		Rndld = null
+  		Rndld = null;
 		io.to(user.socketID).emit('alert', "message");
 	 });
   }
+
   socket.on('send id', function(userNick){
 	User.findOneAndUpdate({user_nick : userNick}, {$set : {'socketID' : socket.id}}, function(err) {});
   });
@@ -299,7 +300,8 @@ var roomData = mongoose.Schema({
     build : [],
     boss : {type : Number},
     round : {type : Number},
-    rmt : [],
+    gameover : {type : Number},
+    rmt : {type : Array},
     created_at : {type : Date, default : Date.now}
 });
 var Room = mongoose.model('roomData', roomData);
@@ -340,7 +342,8 @@ app.post('/roomCreat', function(req, res) {
 		delete : "no",
 		start : "대기",
 		boss : 100,
-		round : 1
+		round : 1,
+		gameover : 0
    	});
 	for (var i=0, row, col;i<=100;i++) {
 		row = parseInt(i/10)+1;
@@ -422,8 +425,20 @@ app.post('/startRoom', function(req, res) {
 				temp = roomValue.member[i];
 				roomValue.member[i] = roomValue.member[order+i];
 				roomValue.member[order+i] = temp;
-				Room.update({_id : roomId}, {$push : {player : {nick : roomValue.member[i], gold : 100, energy : 10, incGold : 0, incEnergy : 0, damage : 0, score : 0, pass:false}}}, function(err){});
+				Room.update({_id : roomId}, {$push : {player : {nick : roomValue.member[i], gold : 100, energy : 10, incGold : 0, incEnergy : 0, damage : 0, score : 0, pass:false, BuildingBuiltThisTurn : 0}}}, function(err){});
 			}
+
+			//라운드 미션 타일 랜덤 배치
+			var rmt = [1, 2, 3, 4, 5];
+			for (var max = rmt.length, i =0, temp, order; i<max; i++){
+				order = Math.floor(Math.random() * (max-i));
+				temp = rmt[i];
+				rmt[i] = rmt[order+i];
+				rmt[order+i] = temp;
+			}
+			console.log(rmt);
+
+			Room.update({_id : roomId}, {$set : {rmt : rmt}}, function(err){});
 			res.redirect('/room?roomId='+roomId);
 		});
 	} else {
@@ -543,6 +558,7 @@ app.get('/produce', function(req, res) {
 								SLandS(room, roomId, req.user.user_nick, locIndex, 10);
 								SLandS(room, roomId, req.user.user_nick, locIndex, 11);
 							}
+							RMT(room, roomId, req.user.user_nick, level);
 							res.redirect('/room?roomId='+roomId);
 					});
 				} else {
@@ -617,8 +633,13 @@ app.post('/pass', function(req,res){
 					room.player[i].pass = false;
 					damage +=room.player[i].damage;
 				}
+				console.log(room.round,"입니다")
+				if ((room.boss-damage) <= 0) {
+					Room.update({_id : roomId}, {$set : {gameover : 1}}, function(err){});
+				}else	if (room.round > 4) {
+					Room.update({_id : roomId}, {$set : {gameover : -1}}, function(err){});
+				}
 				Room.update({_id : roomId}, {$set : {player : room.player}, $inc : {round : 1, boss : -damage}} , function(err){});
-				console.log(room.player);
 			}
 			console.log(room.player);
 			res.redirect('/turnEnd?roomId='+roomId);
@@ -646,23 +667,24 @@ function SLandS(room, roomId, user_nick, locIndex, n) {
 }
 
 function RMT(room, roomId, user_nick, level) {
-	if (room.rmt[round-1]===1) {
+	if (room.rmt[room.round-1]===1) {
 		//1단계 대포를 지으면 지을 때마다 3점
 		if (level === 1) {
 			Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 3}}, function(err){});
 		}
-	} else if (room.rmt[round-1]===2) {
+	} else if (room.rmt[room.round-1]===2) {
 		//2단계 대포를 지으면 지을 때마다 3점
 		if (level === 2) {
 			Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 3}}, function(err){});
 		}
-	} else if (room.rmt[round-1]===3) {
+	} else if (room.rmt[room.round-1]===3) {
 		//3단계 대포를 지으면 지을 때마다 5점
 		if (level === 3) {
 			Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 5}}, function(err){});
 		}
-	} else if (room.rmt[round-1]===4) {
-		//20 데미지 달성 시 10점
+	} else if (room.rmt[room.round-1]===4) {
+		//20 데미지 달성 시 10점(미구현)
+		/*
 		for (var i = 0; i < room.player.length ; i++) {
 			if ( room.player[i].nick === user_nick ) {
 				if (room.player[i].damage >= 20) {
@@ -671,11 +693,13 @@ function RMT(room, roomId, user_nick, level) {
 				break;
 			}
 		}
-	} else if (room.rmt[round-1]===5) {
+		*/
+	} else if (room.rmt[room.round-1]===5) {
 		//건물 5개 지으면 10점
 		for (var i = 0; i < room.player.length ; i++) {
 			if ( room.player[i].nick === user_nick ) {
 				room.player[i].BuildingBuiltThisTurn ++;
+				Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.BuildingBuiltThisTurn' : 1}}, function(err){});
 				if (room.player[i].BuildingBuiltThisTurn === 5) {
 					Room.update({_id : roomId, player : {$elemMatch : {nick : user_nick}}}, {$inc : {'player.$.score' : 10}}, function(err){});
 				}
@@ -683,5 +707,5 @@ function RMT(room, roomId, user_nick, level) {
 			}
 		}
 	}
-
+	console.log("RMT(",room.rmt[room.round-1],")실행");
 }

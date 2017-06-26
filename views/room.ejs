@@ -1,4 +1,9 @@
 <% include include/header.ejs %>
+<% if (room.gameover === 1) { %>
+	<script>alert('승리!!!');</script>
+<%} else if (room.gameover === -1) { %>
+	패배!!!
+<%} else { %>
 	<div class="container room">
 	<% if (room.start === "대기") { %>
 		<h2>생성 시간 : <%= room.name %></h2>
@@ -86,7 +91,25 @@
 				<li>골드수입 : <%= room.player[i].incGold %></li>
 				<li>에너지수입 : <%= room.player[i].incEnergy %></li>
 				<li>총 데미지 : <%= room.player[i].damage %></li>
+				<li>점수 : <%= room.player[i].score %></li>
 			</ul>
+		</div>
+		<% } %>
+		<% for (i = 0; i<room.rmt.length; i++) { %>
+		<div class="roundbox">
+		<h3 class="<% if (i===room.round-1) {%>b<%}%>">Round <%= i+1 %></h3>
+			<% switch (room.rmt[i]) {
+				case 1 : %> 1단계 대포를 지으면 지을때마다 3점
+				<% break;
+				case 2 : %> 2단계 대포를 지으면 지을때마다 3점
+				<% break;
+				case 3 : %> 3단계 대포를 지으면 지을때마다 5점
+				<% break;
+				case 4 : %> 20데미지 달성시 10점(미구현)
+				<% break;
+				case 5 : %> 건물 5개 지으면 10점
+				<% break;
+			} %>
 		</div>
 		<% } %>
 	<% } %>
@@ -150,4 +173,5 @@
 			//location.href="/room?roomId=<%=room._id%>";
 		});
 	</script>
+<% } %>
 <% include include/footer.ejs %>
