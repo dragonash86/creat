@@ -1,8 +1,10 @@
 <% include include/header.ejs %>
 <% if (room.gameover === 1) { %>
-	<script>alert('승리!!!');</script>
+	승리!!!
+	<a href="/">메인으로 가기</a>
 <%} else if (room.gameover === -1) { %>
 	패배!!!
+	<a href="/">메인으로 가기</a>
 <%} else { %>
 	<div class="container room">
 	<% if (room.start === "대기") { %>
@@ -56,8 +58,10 @@
 					<li>남은 액션 포인트 : <%= room.action %><li>
 					<li>총 턴 수 : <%= room.currentTurn %></li>
 				</ul>
-				<form action="/turnEnd?roomId=<%= room._id %>" id="endTurn" method="post"><input type="submit" value="턴 넘기기" /></form>
-				<form action="/pass?roomId=<%= room._id %>" id="pass" method="post"><input type="submit" value="패스" /></form>
+				<% if (room.action === 0) { %>
+					<form action="/turnEnd?roomId=<%= room._id %>" id="endTurn" method="post"><input type="submit" value="턴 넘기기" /></form>
+				<% } %>
+				<form action="/pass?roomId=<%= room._id %>" id="pass" method="post"><input type="submit" value="라운드 패스" /></form>
 			<% } %>
 		<% } %>
 		<div class="boss">
@@ -95,9 +99,9 @@
 			</ul>
 		</div>
 		<% } %>
-		<% for (i = 0; i<room.rmt.length; i++) { %>
+		<% for (i = 0; i < room.rmt.length; i++) { %>
 		<div class="roundbox">
-		<h3 class="<% if (i===room.round-1) {%>b<%}%>">Round <%= i+1 %></h3>
+		<h3 class="<% if (i === room.round - 1) {%> b <% } %>">Round <%= i + 1 %></h3>
 			<% switch (room.rmt[i]) {
 				case 1 : %> 1단계 대포를 지으면 지을때마다 3점
 				<% break;
@@ -119,11 +123,11 @@
     	$(function() {
 			$(".board .active a").click(function(e) {
 				e.preventDefault();
-				var location=this.getElementsByTagName('span')[0].innerText;
-				var level=this.getElementsByTagName('p')[0].innerText;
-				var row=parseInt(location.substring(0,this.text.indexOf('-')));
-				var col=parseInt(location.substring(this.text.indexOf('-')+1,this.text.indexOf('-')+3));
-				var locIndex=(row-1)*10+col;
+				var location = this.getElementsByTagName('span')[0].innerText;
+				var level = this.getElementsByTagName('p')[0].innerText;
+				var row = parseInt(location.substring(0,this.text.indexOf('-')));
+				var col = parseInt(location.substring(this.text.indexOf('-') + 1,this.text.indexOf('-') + 3));
+				var locIndex=(row - 1) * 10 + col;
 				//if ( === )
 				var test = "."+$(this)[0].className+" p";
 				var num= <% for (var i = 0; i < room.player.length; i++) {
@@ -131,7 +135,7 @@
 						%><%=i%>
 						<%}}%>;
 						//alert(i);
-				if ($(test)[0].className==="player"+num || $(test)[0].className===""){
+				if ($(test)[0].className === "player"+num || $(test)[0].className === ""){
 					//alert('성공');
 					$(".layer_action").fadeIn(200);
 	      				$(".layer_action").css({"top":$(this).offset().top + 30, "left":$(this).offset().left + 30},100);
