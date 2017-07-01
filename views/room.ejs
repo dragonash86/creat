@@ -20,15 +20,15 @@
 			<li>상태 : <%= room.start %></li>
 		</ul>
 		<%
-            if (user) {
-                var count = 0;
-                for (i = 0; i < room.member.length; i++) {
-                    if (room.member[i] === user.user_nick) {
-                        count = count + 1;
-                    }
-                }
-            }
-        %>
+		if (user) {
+		    var count = 0;
+		    for (i = 0; i < room.member.length; i++) {
+		        if (room.member[i] === user.user_nick) {
+		            count = count + 1;
+		        }
+		    }
+		}
+	   	 %>
 		<% if (room.member.length !== room.maxMember && count === 0) { %>
 			<form action="/joinRoom?roomId=<%= room._id %>" method="post"><input type="submit" value="참가하기" /></form>
 		<% } else if (count !== 0 && room.admin !== user.user_nick) { %>
@@ -73,12 +73,12 @@
 		<table class="board">
 			<% for (var i = 1; i <= 10; i++) { %>
 			
-			<tr>
-				<% for (var j = 1; j <= 10; j++) { %>
-				<td><a href="#n" class="p_<%= i %>_<%= j %>"><span><%= i %>-<%= j %></span><br />
-				<p class="<% for (var k=0;k<room.player.length;k++){if (room.build[(i-1)*10+j].owner === room.player[k].nick){%>player<%= k %><% }} %>"><%= room.build[(i-1)*10+j].level %></p></a></td>
-				<% } %>
-			</tr>
+				<tr>
+					<% for (var j = 1; j <= 10; j++) { %>
+						<td><a href="#n" class="p_<%= i %>_<%= j %>"><span><%= i %>-<%= j %></span><br />
+						<p class="<% for (var k=0;k<room.player.length;k++){if (room.build[(i-1)*10+j].owner === room.player[k].nick){%>player<%= k %><% }} %>"><%= room.build[(i-1)*10+j].level %></p></a></td>
+					<% } %>
+				</tr>
 			<% } %>
 		</table>
 		<div class="layer_action">
@@ -87,40 +87,40 @@
 			<a href="#n" class="cancel">취소</a>
 		</div>
 		<% for (i =0; i<room.player.length; i++) {%>
-		<div class="box">
-			<h3 class="player<%= i %>">Player <%= i+1 %> : <%= room.player[i].nick %></h3>
-			<ul>
-				<li>에너지 : <%= room.player[i].energy %></li>
-				<li>골드 : <%= room.player[i].gold %></li>
-				<li>골드수입 : <%= room.player[i].incGold %></li>
-				<li>에너지수입 : <%= room.player[i].incEnergy %></li>
-				<li>총 데미지 : <%= room.player[i].damage %></li>
-				<li>점수 : <%= room.player[i].score %></li>
-			</ul>
-		</div>
+			<div class="box">
+				<h3 class="player<%= i %>">Player <%= i+1 %> : <%= room.player[i].nick %></h3>
+				<ul>
+					<li>에너지 : <%= room.player[i].energy %></li>
+					<li>골드 : <%= room.player[i].gold %></li>
+					<li>골드수입 : <%= room.player[i].incGold %></li>
+					<li>에너지수입 : <%= room.player[i].incEnergy %></li>
+					<li>총 데미지 : <%= room.player[i].damage %></li>
+					<li>점수 : <%= room.player[i].score %></li>
+				</ul>
+			</div>
 		<% } %>
 		<% for (i = 0; i < room.rmt.length; i++) { %>
-		<div class="roundbox">
-		<h3 class="<% if (i === room.round - 1) {%> b <% } %>">Round <%= i + 1 %></h3>
-			<% switch (room.rmt[i]) {
-				case 1 : %> 1단계 대포를 지으면 지을때마다 3점
-				<% break;
-				case 2 : %> 2단계 대포를 지으면 지을때마다 3점
-				<% break;
-				case 3 : %> 3단계 대포를 지으면 지을때마다 5점
-				<% break;
-				case 4 : %> 20데미지 달성시 10점(미구현)
-				<% break;
-				case 5 : %> 건물 5개 지으면 10점
-				<% break;
-			} %>
-		</div>
+			<div class="roundbox">
+				<h3 class="<% if (i === room.round - 1) {%> b <% } %>">Round <%= i + 1 %></h3>
+					<% switch (room.rmt[i]) {
+						case 1 : %> 1단계 대포를 지으면 지을때마다 3점
+						<% break;
+						case 2 : %> 2단계 대포를 지으면 지을때마다 3점
+						<% break;
+						case 3 : %> 3단계 대포를 지으면 지을때마다 5점
+						<% break;
+						case 4 : %> 20데미지 달성시 10점(미구현)
+						<% break;
+						case 5 : %> 건물 5개 지으면 10점
+						<% break;
+					} %>
+			</div>
 		<% } %>
 	<% } %>
 	</div>
 	<script src="/socket.io/socket.io.js"></script>
-    <script>
-    	$(function() {
+	<script>
+		$(function() {
 			$(".board .active a").click(function(e) {
 				e.preventDefault();
 				var location = this.getElementsByTagName('span')[0].innerText;
@@ -133,7 +133,7 @@
 				var num= <% for (var i = 0; i < room.player.length; i++) {
 					if ( user.user_nick === room.player[i].nick ) {
 						%><%=i%>
-						<%}}%>;
+					<%}}%>;
 						//alert(i);
 				if ($(test)[0].className === "player"+num || $(test)[0].className === ""){
 					//alert('성공');
@@ -143,11 +143,11 @@
 	      				$(".layer_action span").removeAttr("class");
 					$(".layer_action span").addClass($(this)[0].className + " lv_"+level);
 					if ($(".layer_action span").hasClass("lv_0")) {
-	      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=1&locIndex='+locIndex+'" class="build">생산</a> 비용 : 10골드 + 2에너지');
+	      					$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=1&locIndex='+locIndex+'" class="build">생산</a> 비용 : 10골드 + 2에너지');
 	      				} else if ($(".layer_action span").hasClass("lv_1")) {
-	      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=2&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 20골드 + 3에너지');
+	      					$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=2&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 20골드 + 3에너지');
 	      				} else if ($(".layer_action span").hasClass("lv_2")) {
-	      				$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=3&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 50골드 + 5에너지');
+	      					$(".layer_action p").html('<a href="/produce?roomId=<%=room._id%>&level=3&locIndex='+locIndex+'" class="build">업그레이드</a> 비용 : 50골드 + 5에너지');
 					}
 				}
 				else;
