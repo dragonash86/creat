@@ -431,25 +431,18 @@ app.post('/startRoom', function(req, res) {
         var roomId = req.query.roomId;
 
         Room.findOneAndUpdate({ _id: roomId }, { $set: { start: "진행 중" } }, function(err, roomValue) {
-            for (var max = roomValue.member.length, i = 0, temp, order; i < max; i++) {
-                order = Math.floor(Math.random() * (max - i));
-                temp = roomValue.member[i];
-                roomValue.member[i] = roomValue.member[order + i];
-                roomValue.member[order + i] = temp;
+        	//턴 순서 정하고 플레이어 초기값 입력 저장
+        	roomValue.member = DoShuffle(roomValue.member, roomValue.member.length);
+            for (var max = roomValue.member.length, i = 0; i < max; i++) {
                 Room.update({ _id: roomId }, { $push: { player: { nick: roomValue.member[i], gold: 100, energy: 10, incGold: 0, incEnergy: 0, damage: 0, score: 0, pass: false, BuildingBuiltThisTurn: 0 } } }, function(err) {});
             }
 
             //라운드 미션 타일 랜덤 배치
             var rmt = [1, 2, 3, 4, 5];
-            for (var max = rmt.length, i = 0, temp, order; i < max; i++) {
-                order = Math.floor(Math.random() * (max - i));
-                temp = rmt[i];
-                rmt[i] = rmt[order + i];
-                rmt[order + i] = temp;
-            }
+            rmt = DoShuffle(rmt, rmt.length);
             console.log(rmt);
-
             Room.update({ _id: roomId }, { $set: { rmt: rmt } }, function(err) {});
+
             res.redirect('/room?roomId=' + roomId);
         });
     } else {
@@ -645,7 +638,7 @@ app.post('/pass', function(req, res) {
                     room.player[i].pass = false;
                     damage += room.player[i].damage;
                 }
-                console.log(room.round, "입니다")
+                console.log(room.round, "라운드")
                 if ((room.boss - damage) <= 0) {
                     Room.update({ _id: roomId }, { $set: { gameover: 1 } }, function(err) {});
                     Ranking.update({ user_nick : req.user },{$inc :{ win : 1}}, function(err){});
@@ -664,7 +657,7 @@ app.post('/pass', function(req, res) {
 });
 
 //파워
-function SLandS(room, roomId, user_nick, locIndex, n) {
+function SLandS(room, roomId, user_nick, locIndex, n) { 
     if (room.build[locIndex + n].owner !== null && room.build[locIndex + n].owner !== user_nick) {
         if (room.build[locIndex + n].level == 1) {
             var bonEnergy = 2;
@@ -678,6 +671,7 @@ function SLandS(room, roomId, user_nick, locIndex, n) {
     }
 }
 
+//라운드 미션 타일
 function RMT(room, roomId, user_nick, level) {
     if (room.rmt[room.round - 1] === 1) {
         //1단계 대포를 지으면 지을 때마다 3점
@@ -722,13 +716,15 @@ function RMT(room, roomId, user_nick, level) {
     console.log("RMT(", room.rmt[room.round - 1], ")실행");
 }
 
-/*
-[알고리즘] Fisher–Yates Shuffle 
-https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
-To initialize an array a of n elements to a randomly shuffled copy of source, both 0-based:
-  for i from 0 to n − 1 do
-      j ← random integer such that 0 ≤ j ≤ i
-      if j ≠ i
-          a[i] ← a[j]
-      a[j] ← source[i]
-*/
+//셔플 알고리즘 : Fisher–Yates Shuffle 
+//Doshuffle(셔플할 배열, 배열의 길이)
+function DoShuffle(xArray, xLength)
+{
+	for (var i = 0, j, temp; i < xLength; i++) {
+		j = Math.floor(Math.random() * (xLength - i));
+		temp = xArray[i];
+		xArray[i] = xArray[i+j];
+		xArray[i+j] = temp;
+	}
+	return xArray;
+}
