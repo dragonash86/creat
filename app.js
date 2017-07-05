@@ -302,6 +302,17 @@ var roomData = mongoose.Schema({
     created_at: { type: Date, default: Date.now }
 });
 var Room = mongoose.model('roomData', roomData);
+
+//랭킹 전역 스키마 생성
+var rankingData = mongoose.Schema({
+    user_nick: { type: String, unique: true },
+    rank: { type: Number },
+    win: {type: Number},
+    lose: {type: Number},
+    winRate: { type: Number }
+});
+var Rangking = mongoose.model('rankingData', rankingData);
+
 app.get('/main', function(req, res) {
     if (req.user) {
         User.find({ _id: req.user._id }, { _id: 0, last_logout: 0, user_id: 0, user_pw: 0, __v: 0 }, function(err, userValue) {
@@ -313,6 +324,9 @@ app.get('/main', function(req, res) {
         res.redirect('/login');
     }
 });
+
+
+
 //방만들기
 app.post('/roomCreat', function(req, res) {
     var now = new Date();
@@ -634,8 +648,10 @@ app.post('/pass', function(req, res) {
                 console.log(room.round, "입니다")
                 if ((room.boss - damage) <= 0) {
                     Room.update({ _id: roomId }, { $set: { gameover: 1 } }, function(err) {});
+                    Ranking.update({ user_nick : req.user },{$inc :{ win : 1}}, function(err){});
                 } else if (room.round > 4) {
                     Room.update({ _id: roomId }, { $set: { gameover: -1 } }, function(err) {});
+                    Ranking.update({ user_nick : req.user },{$inc :{ lose : 1}}, function(err){});
                 }
                 Room.update({ _id: roomId }, { $set: { player: room.player }, $inc: { round: 1, boss: -damage } }, function(err) {});
             }
