@@ -311,7 +311,7 @@ var rankingData = mongoose.Schema({
     lose: {type: Number},
     winRate: { type: Number }
 });
-var Rangking = mongoose.model('rankingData', rankingData);
+var Ranking = mongoose.model('rankingData', rankingData);
 
 app.get('/main', function(req, res) {
     if (req.user) {
@@ -641,10 +641,16 @@ app.post('/pass', function(req, res) {
                 console.log(room.round, "라운드")
                 if ((room.boss - damage) <= 0) {
                     Room.update({ _id: roomId }, { $set: { gameover: 1 } }, function(err) {});
-                    Ranking.update({ user_nick : req.user },{$inc :{ win : 1}}, function(err){});
+                    for (var ri=0; ri<room.member.lenght;i++) {
+                        Ranking.update({ user_nick : room.member[ri] },{$inc :{ win : 1}}, function(err){});  
+                    }
+                    Ranking.sort({ win: 'desc' });    
                 } else if (room.round > 4) {
                     Room.update({ _id: roomId }, { $set: { gameover: -1 } }, function(err) {});
-                    Ranking.update({ user_nick : req.user },{$inc :{ lose : 1}}, function(err){});
+                    for (var ri=0; ri<room.member.lenght;i++) {
+                        Ranking.update({ user_nick : room.member[ri] },{$inc :{ lose : 1}}, function(err){});
+                    }
+                    Ranking.sort({ win: 'desc' });
                 }
                 Room.update({ _id: roomId }, { $set: { player: room.player }, $inc: { round: 1, boss: -damage } }, function(err) {});
             }
@@ -654,6 +660,15 @@ app.post('/pass', function(req, res) {
     } else {
         res.render('login');
     }
+});
+
+//랭킹
+app.get('/ranking', function(req,res){
+    Ranking.find(function(err, rankingValue) {
+            res.render('ranking', { ranking: rankingValue});
+                //console.log(roomValue[0].board);
+                //console.log(roomValue[0]);
+            });
 });
 
 //파워
