@@ -346,14 +346,14 @@ app.post('/roomCreat', function(req, res) {
             admin: req.user.user_nick,
             maxMember: 2,
             member: [req.user.user_nick],
-            player_1: { nick: req.user.user_nick, gold: 100, energy: 10, action: 1 },
-            player_2: { nick: null, gold: 100, energy: 10, action: 1 },
+            player_1: { nick: req.user.user_nick, gold: 200, energy: 30, action: 1 },
+            player_2: { nick: null, gold: 200, energy: 30, action: 1 },
             currentTurn: 1,
             action: 2,
             full: "no",
             delete: "no",
             start: "대기",
-            boss: 100,
+            boss: 150,
             round: 1,
             gameover: 0
         });
@@ -425,7 +425,7 @@ app.post('/deleteRoom', function(req, res) {
         res.render('login');
     }
 });
-//시작
+//시작 
 app.post('/startRoom', function(req, res) {
     if (req.user) {
         var roomId = req.query.roomId;
@@ -434,7 +434,7 @@ app.post('/startRoom', function(req, res) {
         	//턴 순서 정하고 플레이어 초기값 입력 저장
         	roomValue.member = DoShuffle(roomValue.member, roomValue.member.length);
             for (var max = roomValue.member.length, i = 0; i < max; i++) {
-                Room.update({ _id: roomId }, { $push: { player: { nick: roomValue.member[i], gold: 100, energy: 10, incGold: 0, incEnergy: 0, damage: 0, score: 0, pass: false, BuildingBuiltThisTurn: 0 } } }, function(err) {});
+                Room.update({ _id: roomId }, { $push: { player: { nick: roomValue.member[i], gold: 500, energy: 50, incGold: 0, incEnergy: 0, damage: 0, score: 0, pass: false, BuildingBuiltThisTurn: 0 } } }, function(err) {});
             }
 
             //라운드 미션 타일 랜덤 배치

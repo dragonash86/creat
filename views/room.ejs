@@ -59,11 +59,43 @@
 					<li>총 턴 수 : <%= room.currentTurn %></li>
 				</ul>
 				<% if (room.action === 0) { %>
-					<form action="/turnEnd?roomId=<%= room._id %>" id="endTurn" method="post"><input type="submit" value="턴 넘기기" /></form>
+					<form action="/turnEnd?roomId=<%= room._id %>" id="endTurn" method="post" style="padding-top:10px"><input type="submit" value="턴 넘기기" /></form>
 				<% } %>
-				<form action="/pass?roomId=<%= room._id %>" id="pass" method="post"><input type="submit" value="라운드 패스" /></form>
+				<form action="/pass?roomId=<%= room._id %>" id="pass" method="post" style="padding:10px 0"><input type="submit" value="라운드 패스" /></form>
 			<% } %>
 		<% } %>
+		<% for (i =0; i<room.player.length; i++) {%>
+			<div class="box">
+				<h3 class="player<%= i %>">Player <%= i+1 %> : <%= room.player[i].nick %></h3>
+				<ul>
+					<li>점수 : <%= room.player[i].score %></li>
+					<li>에너지 : <%= room.player[i].energy %></li>
+					<li>골드 : <%= room.player[i].gold %></li>
+					<li>골드수입 : <%= room.player[i].incGold %></li>
+					<li>에너지수입 : <%= room.player[i].incEnergy %></li>
+					<li>총 데미지 : <%= room.player[i].damage %></li>
+				</ul>
+			</div>
+		<% } %>
+		<ul class="box_round">
+		<% for (i = 0; i < room.rmt.length; i++) { %>
+			<li class="roundbox">
+				<h3 class="<% if (i === room.round - 1) {%> b <% } %>">Round <%= i + 1 %></h3>
+					<% switch (room.rmt[i]) {
+						case 1 : %> 1단계 대포를 지으면 지을때마다 3점
+						<% break;
+						case 2 : %> 2단계 대포를 지으면 지을때마다 3점
+						<% break;
+						case 3 : %> 3단계 대포를 지으면 지을때마다 5점
+						<% break;
+						case 4 : %> 20데미지 달성시 10점(미구현)
+						<% break;
+						case 5 : %> 건물 5개 지으면 10점
+						<% break;
+					} %>
+			</li>
+		<% } %>
+		</ul>
 		<div class="boss">
 			<h3>B O S S </h3>
 			<ul>
@@ -86,36 +118,7 @@
 			<p></p>
 			<a href="#n" class="cancel">취소</a>
 		</div>
-		<% for (i =0; i<room.player.length; i++) {%>
-			<div class="box">
-				<h3 class="player<%= i %>">Player <%= i+1 %> : <%= room.player[i].nick %></h3>
-				<ul>
-					<li>에너지 : <%= room.player[i].energy %></li>
-					<li>골드 : <%= room.player[i].gold %></li>
-					<li>골드수입 : <%= room.player[i].incGold %></li>
-					<li>에너지수입 : <%= room.player[i].incEnergy %></li>
-					<li>총 데미지 : <%= room.player[i].damage %></li>
-					<li>점수 : <%= room.player[i].score %></li>
-				</ul>
-			</div>
-		<% } %>
-		<% for (i = 0; i < room.rmt.length; i++) { %>
-			<div class="roundbox">
-				<h3 class="<% if (i === room.round - 1) {%> b <% } %>">Round <%= i + 1 %></h3>
-					<% switch (room.rmt[i]) {
-						case 1 : %> 1단계 대포를 지으면 지을때마다 3점
-						<% break;
-						case 2 : %> 2단계 대포를 지으면 지을때마다 3점
-						<% break;
-						case 3 : %> 3단계 대포를 지으면 지을때마다 5점
-						<% break;
-						case 4 : %> 20데미지 달성시 10점(미구현)
-						<% break;
-						case 5 : %> 건물 5개 지으면 10점
-						<% break;
-					} %>
-			</div>
-		<% } %>
+		
 	<% } %>
 	</div>
 	<script src="/socket.io/socket.io.js"></script>
