@@ -1,0 +1,21 @@
+<% include include/header.ejs %>
+<table class="board">
+	<tr>
+		<td>순위</td>
+		<td>닉네임</td>
+		<td>승</td>
+		<td>패</td>
+		<td>승률</td>
+	</tr>
+	<%for (var i=0;i<ranking.length;i++)  {%>
+	<tr>
+		<td><%=ranking[i].rank%></td>
+		<td><%=ranking[i].user_nick%></td>
+		<td><%=ranking[i].win%></td>
+		<td><%=ranking[i].lose%></td>
+		<td><%=ranking[i].winRate%></td>
+	</tr>
+	<%}%>
+</table>
+<%=ranking.length%>
+<% include include/footer.ejs %>
