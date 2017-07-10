@@ -9,11 +9,11 @@
 	</tr>
 	<%for (var i=0;i<ranking.length;i++)  {%>
 	<tr>
-		<td><%=ranking[i].rank%></td>
+		<td><%=i+1%></td>
 		<td><%=ranking[i].user_nick%></td>
 		<td><%=ranking[i].win%></td>
 		<td><%=ranking[i].lose%></td>
-		<td><%=ranking[i].winRate%></td>
+		<td><%=ranking[i].winRate.value%></td>
 	</tr>
 	<%}%>
 </table>

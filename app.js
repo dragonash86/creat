@@ -24,6 +24,9 @@ app.engine('html', require('ejs').__express);
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 
+require('mongoose-double')(mongoose);
+
+
 //페이지 연결
 app.get('/', function(req, res) {
     res.redirect('/main');
@@ -109,7 +112,7 @@ var userData = mongoose.Schema({
     sns: { type: String },
     created_at: { type: Date, default: Date.now },
     last_logout: { type: Date },
-    socketID: { type: String, unique: true }
+    socketID: { type: String }
 });
 //패스워드 비교 userData를 User에 담기 전에 이걸 써넣어야 로그인 사용가능
 userData.methods.validPassword = function(password) {
@@ -137,13 +140,22 @@ app.post('/joinForm', function(req, res) {
         read_log: [],
         email: "",
         sns: "",
-        socketID: null
     });
     user.save(function(err) {
         if (err) {
             res.send('<script>alert("사용 중인 닉네임 또는 아이디 입니다.");location.href="/join";</script>');
             return console.error(err);
-        } else res.send('<script>alert("가입 완료");location.href="/";</script>');
+        } else {
+            var rank = new Ranking({
+                user_nick : req.body.userNick,
+                win : 0,
+                lose : 0,
+                winRate : 0
+            });
+            rank.save(function(err){});
+
+            res.send('<script>alert("가입 완료");location.href="/";</script>');
+        }
     });
 });
 //로그인
@@ -198,8 +210,18 @@ passport.use(new NaverStrategy({
                 email: profile.emails[0].value,
                 sns: "naver"
             });
+
             user.save(function(err) {
                 if (err) console.log(err);
+                else {
+                    var rank = new Ranking({
+                        user_nick : req.body.userNick,
+                        win : 0,
+                        lose : 0,
+                        winRate : 0
+                    });
+                    rank.save(function(err){});
+                }
                 return done(err, user);
             });
         } else {
@@ -304,12 +326,12 @@ var roomData = mongoose.Schema({
 var Room = mongoose.model('roomData', roomData);
 
 //랭킹 전역 스키마 생성
+var SchemaTypes = mongoose.Schema.Types;
 var rankingData = mongoose.Schema({
     user_nick: { type: String, unique: true },
-    rank: { type: Number },
     win: {type: Number},
     lose: {type: Number},
-    winRate: { type: Number }
+    winRate: { type: SchemaTypes.Double }
 });
 var Ranking = mongoose.model('rankingData', rankingData);
 
@@ -641,16 +663,30 @@ app.post('/pass', function(req, res) {
                 console.log(room.round, "라운드")
                 if ((room.boss - damage) <= 0) {
                     Room.update({ _id: roomId }, { $set: { gameover: 1 } }, function(err) {});
-                    for (var ri=0; ri<room.member.lenght;i++) {
-                        Ranking.update({ user_nick : room.member[ri] },{$inc :{ win : 1}}, function(err){});  
+                    for (var ri=0; ri<room.member.length;ri++) {
+                        console.log(room.member[ri],room.member.length);
+                        Ranking.findOne({ user_nick : room.member[ri] }, function(err, ranking){
+                            console.log(ranking.win,ranking.winRate);
+                            ranking.win++;
+                            ranking.winRate = ranking.win/(ranking.win+ranking.lose);
+                            Ranking.update({ user_nick : room.member[ri] },{ $set : { win : ranking.win, winRate : ranking.winRate}}, function(err){});
+                            console.log(ranking.win,ranking.winRate,ranking.winRate.value);
+                        });  
                     }
-                    Ranking.sort({ win: 'desc' });    
+                    Ranking.find().sort({ win: 'desc' });    
                 } else if (room.round > 4) {
                     Room.update({ _id: roomId }, { $set: { gameover: -1 } }, function(err) {});
-                    for (var ri=0; ri<room.member.lenght;i++) {
-                        Ranking.update({ user_nick : room.member[ri] },{$inc :{ lose : 1}}, function(err){});
+                    for (var ri=0; ri<room.member.length;ri++) {
+                        console.log(room.member[ri],room.member.length);
+                        Ranking.findOne({ user_nick : room.member[ri] }, function(err, ranking){
+                            console.log(ranking.win,ranking.winRate);
+                            ranking.lose++;
+                            ranking.winRate = ranking.win/(ranking.win+ranking.lose);
+                            Ranking.update({ user_nick : room.member[ri] },{ $set : { lose : ranking.lose, winRate : ranking.winRate}}, function(err){});
+                            console.log(ranking.win,ranking.winRate,ranking.winRate.value);
+                        });  
                     }
-                    Ranking.sort({ win: 'desc' });
+                    Ranking.find().sort({ win: 'desc' });
                 }
                 Room.update({ _id: roomId }, { $set: { player: room.player }, $inc: { round: 1, boss: -damage } }, function(err) {});
             }
@@ -665,6 +701,7 @@ app.post('/pass', function(req, res) {
 //랭킹
 app.get('/ranking', function(req,res){
     Ranking.find(function(err, rankingValue) {
+
             res.render('ranking', { ranking: rankingValue});
                 //console.log(roomValue[0].board);
                 //console.log(roomValue[0]);
@@ -743,3 +780,13 @@ function DoShuffle(xArray, xLength)
 	}
 	return xArray;
 }
+// if(roomValue[i]!==undefined)
+//      roomValue[i].xxx = xxx;
+// else 
+//      error;
+
+
+//room.player.village{[buildings]}
+//빌딩 지을때마다 근처에 villiage 있는지 확인
+//있으면 해당 village에 지금 지은 건물 위치 추가
+//없으면 villiage 새로 생성
