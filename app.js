@@ -456,8 +456,9 @@ app.post('/startRoom', function(req, res) {
         	//턴 순서 정하고 플레이어 초기값 입력 저장
         	roomValue.member = DoShuffle(roomValue.member, roomValue.member.length);
             for (var max = roomValue.member.length, i = 0; i < max; i++) {
-                Room.update({ _id: roomId }, { $push: { player: { nick: roomValue.member[i], gold: 500, energy: 50, incGold: 0, incEnergy: 0, damage: 0, score: 0, pass: false, BuildingBuiltThisTurn: 0 } } }, function(err) {});
+                Room.update({ _id: roomId }, { $push: { player: { nick: roomValue.member[i], gold: 500, energy: 50, incGold: 0, incEnergy: 0, damage: 0, score: 0, pass: false, BuildingBuiltThisTurn: 0  } } }, function(err) {});
             }
+            //village : [{buildings : []}]
 
             //라운드 미션 타일 랜덤 배치
             var rmt = [1, 2, 3, 4, 5];
@@ -522,8 +523,107 @@ app.get('/produce', function(req, res) {
                         if (currentGold >= reqGold) {
                             Room.findOneAndUpdate({ _id: roomId, build: { $elemMatch: { locIndex: locIndex } } }, factor, { new: true }, function(err, room) {
                                 Room.findOneAndUpdate({ _id: roomId, player: { $elemMatch: { nick: req.user.user_nick } } }, factor2, function(err, room) {});
-                                var row = parseInt(locIndex / 10);
-                                var col = locIndex % 10
+                                var row = parseInt((locIndex-1) / 10);
+                                var col = (locIndex-1) % 10;
+
+
+                                var tempRow;
+                                var tempCol;
+
+                                var tempPushedVillage;
+
+                                tempPushedVillage = -1;
+
+                                tempRow = row;
+                                tempCol = col;
+
+                                if( row > 0 )
+                                    tempRow = row - 1;
+                                north = (tempRow) * 10 + tempCol+1;
+                                
+                                tempRow = row;
+                                tempCol = col;
+                                if( col > 0)
+                                    tempCol = col - 1;
+                                west = (tempRow) * 10 + tempCol+1;
+
+                                tempRow = row;
+                                tempCol = col;
+
+
+                                if ( row < 9 )
+                                    tempRow = row + 1;
+                                south = (tempRow) * 10 + tempCol+1;
+
+                                tempRow = row;
+                                tempCol = col;
+
+                                if ( col < 9 )
+                                    tempCol = col + 1;
+                                east = (tempRow) * 10 + tempCol+1;
+
+                                //1렙 빌딩 지을때마다 근처에 villiage 있는지 확인
+                                if (level === 1)
+                                {
+                                    console.log('villiage check');
+                                    for(var i =0;i<room.player.length;i++) {
+                                         //console.log('villiage check1', room.player.length, room.player[i]);
+                                        if ( room.player[i].nick === req.user.user_nick ) {
+                                            console.log('room.player.length: ',room.player.length);
+                                            //처음짓는 건물일경우
+                                            if(room.player[i].village === undefined)
+                                            {
+                                                room.player[i].village = new Array();
+                                                room.player[i].village[0] = {'buildings' : [locIndex]};
+                                                break;
+                                            }
+                                            for (var j=0; j<room.player[i].village.length; j++) 
+                                            {
+                                                console.log('room.player[i].village.length:',room.player[i].village.length);
+                                                for (var k=0;k<room.player[i].village[j].buildings.length; k++)
+                                                {
+                                                    //row col 로 변환, -1 +1 하면 값4개 나옴 
+                                                    console.log('north, west, east, south', north, west, east, south);
+                                                    if(north === room.player[i].village[j].buildings[k] || west === room.player[i].village[j].buildings[k] || east === room.player[i].village[j].buildings[k] || south === room.player[i].village[j].buildings[k]) {
+                                                        //있으면 해당 village에 지금 지은 건물 위치 추가
+                                                        if( tempPushedVillage === -1 ) {
+                                                            room.player[i].village[j].buildings.push(locIndex);
+
+                                                            tempPushedVillage = j;
+                                                            console.log('tempPushedVillage',tempPushedVillage);
+                                                        }
+                                                        else
+                                                        {
+                                                            room.player[i].village[tempPushedVillage].buildings = room.player[i].village[tempPushedVillage].buildings.concat(room.player[i].village[j].buildings );
+
+                                                            room.player[i].village.splice(j,1);
+                                                            j--;
+                                                            console.log('j',j);
+                                                        }
+                                                        
+                                                        break;
+                                                        
+
+                                                    }
+                                                    console.log('j2',j);
+
+                                                }
+                                            }
+                                            //없으면 village 새로 생성
+                                            if ( tempPushedVillage === -1 ) {
+                                                room.player[i].village.push({'buildings' : [locIndex]});
+                                                console.log('creat new village')
+                                            }
+                                            console.log('check 4');
+                                            break;
+                                        }
+                                    }
+
+                                }
+                                Room.update({_id:roomId},{$set : {player: room.player}}, function(err){});
+
+                                row = parseInt(locIndex / 10);
+                                col = locIndex % 10;
 
                                 if (locIndex === 1) {
                                     //+1, +9, +10
@@ -787,6 +887,6 @@ function DoShuffle(xArray, xLength)
 
 
 //room.player.village{[buildings]}
-//빌딩 지을때마다 근처에 villiage 있는지 확인
+//1렙 빌딩 지을때마다 근처에 villiage 있는지 확인
 //있으면 해당 village에 지금 지은 건물 위치 추가
 //없으면 villiage 새로 생성
